@@ -11,6 +11,10 @@ public:
 
 public slots:
     void setFileName(const QString& name);
+    void saveFile();
+
+private:
+    QString filename;
 };
 
 #endif // EDITOR_H

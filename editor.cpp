@@ -7,6 +7,8 @@ Editor::Editor(QWidget *parent) :
 {
     setEnabled(false);
     setFontFamily("DejaVu Sans Mono");
+
+    connect(this, SIGNAL(textChanged()), this, SLOT(saveFile()));
 }
 
 void Editor::setFileName(const QString &name)
@@ -17,8 +19,20 @@ void Editor::setFileName(const QString &name)
         qWarning("File not found");
         return;
     }
-
+    this->filename = name;
     setPlainText(file.readAll());
     setEnabled(true);
     setFocus();
+}
+
+void Editor::saveFile()
+{
+    QFile file(filename);
+
+    if (!file.open(QFile::WriteOnly)) {
+        qWarning("Permission denied");
+        return;
+    }
+
+    file.write(toPlainText().toUtf8());
 }
