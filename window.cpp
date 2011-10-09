@@ -2,6 +2,7 @@
 #include "navigator.h"
 #include "editor.h"
 
+#include <QAction>
 #include <QLayout>
 
 Window::Window(QWidget *parent) :
@@ -14,4 +15,9 @@ Window::Window(QWidget *parent) :
     vl->addWidget(editor);
 
     connect(navigator, SIGNAL(activated(QString)), editor, SLOT(setFileName(QString)));
+
+    QAction* navigate = new QAction(this);
+    navigate->setShortcut(QKeySequence(tr("Ctrl+L")));
+    connect(navigate, SIGNAL(triggered()), navigator, SLOT(setFileFocus()));
+    addAction(navigate);
 }

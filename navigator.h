@@ -15,6 +15,9 @@ public:
     explicit Navigator(QWidget *parent = 0);
     ~Navigator();
 
+public slots:
+    void setFileFocus();
+
 signals:
     void activated(const QString& fileName);
 

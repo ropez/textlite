@@ -6,6 +6,7 @@
 class Navigator;
 class Editor;
 
+
 class Window : public QWidget
 {
     Q_OBJECT
