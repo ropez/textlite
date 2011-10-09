@@ -15,6 +15,9 @@ public:
     explicit Navigator(QWidget *parent = 0);
     ~Navigator();
 
+signals:
+    void activated(const QString& fileName);
+
 private:
     Ui::Navigator *ui;
 };

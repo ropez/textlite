@@ -4,6 +4,7 @@
 #include <QWidget>
 
 class Navigator;
+class Editor;
 
 class Window : public QWidget
 {
@@ -13,7 +14,7 @@ public:
 
 private:
     Navigator* navigator;
-
+    Editor* editor;
 };
 
 #endif // WINDOW_H

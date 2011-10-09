@@ -13,14 +13,18 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     navigator.cpp \
-    window.cpp
+    window.cpp \
+    editor.cpp
 
 HEADERS  += mainwindow.h \
     navigator.h \
-    window.h
+    window.h \
+    editor.h
 
 FORMS += \
     navigator.ui
+
+
 
 
 
