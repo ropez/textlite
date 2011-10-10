@@ -6,7 +6,7 @@
 
 QT       += core gui
 
-TARGET = TextLite
+TARGET = textlite
 TEMPLATE = app
 
 
