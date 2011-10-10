@@ -10,9 +10,9 @@ Editor::Editor(QWidget *parent) :
     setWordWrapMode(QTextOption::NoWrap);
     setFontFamily("DejaVu Sans Mono");
 
-    connect(this, SIGNAL(textChanged()), this, SLOT(saveFile()));
-
     highlighter = new Highlighter(this->document());
+
+    connect(this, SIGNAL(textChanged()), this, SLOT(saveFile()));
 }
 
 void Editor::setFileName(const QString &name)
@@ -23,14 +23,18 @@ void Editor::setFileName(const QString &name)
         qWarning("File not found");
         return;
     }
-    this->filename = name;
+    this->filename.clear();
     setPlainText(file.readAll());
     setReadOnly(false);
     setFocus();
+    this->filename = name;
 }
 
 void Editor::saveFile()
 {
+    if (filename.isNull())
+        return;
+
     QFile file(filename);
 
     if (!file.open(QFile::WriteOnly)) {
