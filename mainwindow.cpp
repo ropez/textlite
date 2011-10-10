@@ -15,6 +15,8 @@ MainWindow::MainWindow(QWidget *parent)
     quit->setShortcut(QKeySequence(QKeySequence::Quit));
     connect(quit, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
     addAction(quit);
+
+    resize(800, 600);
 }
 
 MainWindow::~MainWindow()
