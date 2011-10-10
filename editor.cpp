@@ -5,7 +5,8 @@
 Editor::Editor(QWidget *parent) :
     QTextEdit(parent)
 {
-    setEnabled(false);
+    setReadOnly(true);
+    setWordWrapMode(QTextOption::NoWrap);
     setFontFamily("DejaVu Sans Mono");
 
     connect(this, SIGNAL(textChanged()), this, SLOT(saveFile()));
@@ -21,7 +22,7 @@ void Editor::setFileName(const QString &name)
     }
     this->filename = name;
     setPlainText(file.readAll());
-    setEnabled(true);
+    setReadOnly(false);
     setFocus();
 }
 
