@@ -1,7 +1,11 @@
 #include "navigator.h"
 #include "ui_navigator.h"
 
+#include <QCompleter>
+#include <QFileSystemModel>
 #include <QLineEdit>
+
+#include <QtDebug>
 
 Navigator::Navigator(QWidget *parent) :
     QWidget(parent),
@@ -9,7 +13,14 @@ Navigator::Navigator(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    connect(ui->comboBox, SIGNAL(activated(QString)), this, SIGNAL(activated(QString)));
+    connect(ui->comboBox, SIGNAL(returnPressed()), this, SLOT(activate()));
+
+    QCompleter* completer = new QCompleter(this);
+    QFileSystemModel* model = new QFileSystemModel(completer);
+    model->setRootPath(QDir::currentPath());
+
+    completer->setModel(model);
+    ui->comboBox->setCompleter(completer);
 }
 
 Navigator::~Navigator()
@@ -20,5 +31,10 @@ Navigator::~Navigator()
 void Navigator::setFileFocus()
 {
     ui->comboBox->setFocus();
-    ui->comboBox->lineEdit()->selectAll();
+    ui->comboBox->selectAll();
+}
+
+void Navigator::activate()
+{
+    emit activated(ui->comboBox->text());
 }

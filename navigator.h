@@ -21,6 +21,9 @@ public slots:
 signals:
     void activated(const QString& fileName);
 
+private slots:
+    void activate();
+
 private:
     Ui::Navigator *ui;
 };
