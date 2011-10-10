@@ -1,4 +1,5 @@
 #include "editor.h"
+#include "highlighter.h"
 
 #include <QFile>
 
@@ -10,6 +11,8 @@ Editor::Editor(QWidget *parent) :
     setFontFamily("DejaVu Sans Mono");
 
     connect(this, SIGNAL(textChanged()), this, SLOT(saveFile()));
+
+    highlighter = new Highlighter(this->document());
 }
 
 void Editor::setFileName(const QString &name)

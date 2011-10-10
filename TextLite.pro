@@ -14,12 +14,14 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     navigator.cpp \
     window.cpp \
-    editor.cpp
+    editor.cpp \
+    highlighter.cpp
 
 HEADERS  += mainwindow.h \
     navigator.h \
     window.h \
-    editor.h
+    editor.h \
+    highlighter.h
 
 FORMS += \
     navigator.ui
