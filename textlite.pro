@@ -15,13 +15,15 @@ SOURCES += main.cpp\
     navigator.cpp \
     window.cpp \
     editor.cpp \
-    highlighter.cpp
+    highlighter.cpp \
+    plistreader.cpp
 
 HEADERS  += mainwindow.h \
     navigator.h \
     window.h \
     editor.h \
-    highlighter.h
+    highlighter.h \
+    plistreader.h
 
 FORMS += \
     navigator.ui
