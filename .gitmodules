@@ -1,0 +1,3 @@
+[submodule "redcar-bundles"]
+	path = redcar-bundles
+	url = git://github.com/redcar/redcar-bundles.git
