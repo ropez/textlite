@@ -107,6 +107,19 @@ Highlighter::Highlighter(QTextDocument* document) :
     QSyntaxHighlighter(document),
     d(new HighlighterPrivate)
 {
+    // XXX
+    readThemeFile("redcar-bundles/Themes/BBEdit.tmTheme");
+    readSyntaxFile("redcar-bundles/Bundles/XML.tmbundle/Syntaxes/XML.plist");
+
+    //    QFile fileList("files.txt");
+    //    fileList.open(QFile::ReadOnly);
+    //    while (!fileList.atEnd()) {
+    //        QByteArray line = fileList.readLine().trimmed();
+    //        qDebug() << line;
+    //        PlistReader reader;
+    //        QVariant map = reader.read(line);
+    //        Q_ASSERT(map.isValid());
+    //    }
 }
 
 void Highlighter::readThemeFile(const QByteArray& themeFile)
