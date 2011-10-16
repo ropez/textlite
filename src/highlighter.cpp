@@ -262,6 +262,11 @@ void Highlighter::highlightBlock(const QString &text)
                 break; // Don't need to continue
         }
 
+        // Highlight skipped section
+        if (foundPos != index) {
+            setFormat(index, foundPos, context->format);
+        }
+
         // Did we find anything to highlight?
         if (foundLength > 0) {
             Q_ASSERT(foundPos < text.length());
