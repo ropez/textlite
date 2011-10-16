@@ -210,6 +210,8 @@ void Highlighter::readSyntaxFile(const QByteArray& syntaxFile)
 
 void Highlighter::highlightBlock(const QString &text)
 {
+    enum MatchType { Normal, Begin, End };
+
     QList<HighlighterPrivate::ppointer> contextStack;
     contextStack.append(d->rootPattern);
 
@@ -217,11 +219,11 @@ void Highlighter::highlightBlock(const QString &text)
     while (index < text.length()) {
         HighlighterPrivate::ppointer context = contextStack.last();
 
-        HighlighterPrivate::ppointer foundPattern;
-        QRegExp foundRegExp;
         int foundPos = text.length();
         int foundLength = 0;
-        QMap<int, HighlighterPrivate::ppointer> foundCaptures;
+
+        HighlighterPrivate::ppointer foundPattern;
+        MatchType foundMatchType;
 
         if (context->end != QString()) {
             HighlighterPrivate::ppointer pattern = context;
@@ -229,10 +231,9 @@ void Highlighter::highlightBlock(const QString &text)
             int pos = exp.indexIn(text, index);
             if (pos != -1 && pos < foundPos) {
                 foundPos = pos;
-                foundRegExp = exp;
-                foundPattern = pattern;
                 foundLength = exp.matchedLength();
-                foundCaptures = pattern->endCaptures;
+                foundPattern = pattern;
+                foundMatchType = End;
             }
         }
 
@@ -242,44 +243,61 @@ void Highlighter::highlightBlock(const QString &text)
                 int pos = exp.indexIn(text, index);
                 if (pos != -1 && pos < foundPos) {
                     foundPos = pos;
-                    foundRegExp = exp;
-                    foundPattern = pattern;
                     foundLength = exp.matchedLength();
-                    foundCaptures = pattern->beginCaptures;
+                    foundPattern = pattern;
+                    foundMatchType = Begin;
                 }
             } else if (pattern->match != QString()) {
                 QRegExp exp(pattern->match);
                 int pos = exp.indexIn(text, index);
                 if (pos != -1 && pos < foundPos) {
                     foundPos = pos;
-                    foundRegExp = exp;
-                    foundPattern = pattern;
                     foundLength = exp.matchedLength();
-                    foundCaptures = pattern->captures;
+                    foundPattern = pattern;
+                    foundMatchType = Normal;
                 }
             }
             Q_ASSERT(foundPos >= index);
             if (foundPos == index)
                 break; // Don't need to continue
         }
-        if (foundLength) {
+
+        // Did we find anything to highlight?
+        if (foundLength > 0) {
             Q_ASSERT(foundPos < text.length());
             setFormat(foundPos, foundLength, foundPattern->format);
-            foundRegExp.indexIn(text, index);
-            for (int c = 1; c <= foundRegExp.captureCount(); c++) {
-                if (foundRegExp.pos(c) != -1) {
-                    if (foundCaptures.contains(c)) {
-                        Q_ASSERT(foundRegExp.pos(c) >= foundPos);
-                        Q_ASSERT(foundRegExp.cap(c).length() > 0);
-                        Q_ASSERT(foundRegExp.pos(c) + foundRegExp.cap(c).length() <= foundPos + foundLength);
-                        setFormat(foundRegExp.pos(c), foundRegExp.cap(c).length(), foundCaptures[c]->format);
+
+            QRegExp exp;
+            QMap<int, HighlighterPrivate::ppointer> captures;
+
+            switch (foundMatchType) {
+            case Normal:
+                exp.setPattern(foundPattern->match);
+                captures = foundPattern->captures;
+                break;
+            case Begin:
+                exp.setPattern(foundPattern->begin);
+                captures = foundPattern->beginCaptures;
+                contextStack.append(foundPattern);
+                break;
+            case End:
+                exp.setPattern(foundPattern->end);
+                captures = foundPattern->endCaptures;
+                contextStack.removeLast();
+                break;
+            }
+
+            // Re-run regexp to get captures
+            exp.indexIn(text, index);
+            for (int c = 1; c <= exp.captureCount(); c++) {
+                if (exp.pos(c) != -1) {
+                    if (captures.contains(c)) {
+                        Q_ASSERT(exp.pos(c) >= foundPos);
+                        Q_ASSERT(exp.cap(c).length() > 0);
+                        Q_ASSERT(exp.pos(c) + exp.cap(c).length() <= foundPos + foundLength);
+                        setFormat(exp.pos(c), exp.cap(c).length(), captures[c]->format);
                     }
                 }
-            }
-            if (foundPattern == context) {
-                contextStack.removeLast();
-            } else if (foundPattern->begin != QString()) {
-                contextStack.append(foundPattern);
             }
         }
         Q_ASSERT(index < foundPos + foundLength);
