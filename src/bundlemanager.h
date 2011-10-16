@@ -18,9 +18,9 @@ class BundleManager : public QObject
 public:
     explicit BundleManager(QObject *parent = 0);
 
-    void readBundles(const QByteArray& path);
+    void readBundles(const QString& path);
 
-    Bundle* getBundleForExtension(const QByteArray& extension);
+    Bundle* getBundleForExtension(const QString& extension);
 
 signals:
 

@@ -5,7 +5,7 @@
 
 class Navigator;
 class Editor;
-
+class BundleManager;
 
 class Window : public QWidget
 {
@@ -13,9 +13,13 @@ class Window : public QWidget
 public:
     explicit Window(QWidget *parent = 0);
 
+private slots:
+    void setFileName(const QString& fileName);
+
 private:
     Navigator* navigator;
     Editor* editor;
+    BundleManager* bundleManager;
 };
 
 #endif // WINDOW_H

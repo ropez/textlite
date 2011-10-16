@@ -3,8 +3,6 @@
 
 #include <QTextEdit>
 
-class Highlighter;
-
 class Editor : public QTextEdit
 {
     Q_OBJECT
@@ -17,7 +15,6 @@ public slots:
 
 private:
     QString filename;
-    Highlighter* highlighter;
 };
 
 #endif // EDITOR_H

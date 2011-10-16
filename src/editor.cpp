@@ -1,5 +1,4 @@
 #include "editor.h"
-#include "highlighter.h"
 
 #include <QFile>
 
@@ -9,8 +8,6 @@ Editor::Editor(QWidget *parent) :
     setReadOnly(true);
     setWordWrapMode(QTextOption::NoWrap);
     setFontFamily("DejaVu Sans Mono");
-
-    highlighter = new Highlighter(this->document());
 
     connect(this, SIGNAL(textChanged()), this, SLOT(saveFile()));
 }
