@@ -14,27 +14,32 @@ class HighlighterPrivate
 {
     friend class Highlighter;
 
-    struct pattern {
+    struct pattern;
+    typedef QExplicitlySharedDataPointer<pattern> ppointer;
+
+    struct pattern : public QSharedData {
         QString name;
+        QString include;
         QString begin;
         QString end;
         QString match;
-        QMap<int, pattern> captures;
-        QMap<int, pattern> beginCaptures;
-        QMap<int, pattern> endCaptures;
-        QList<pattern> patterns;
+        QMap<int, ppointer> captures;
+        QMap<int, ppointer> beginCaptures;
+        QMap<int, ppointer> endCaptures;
+        QList<ppointer> patterns;
         QTextCharFormat format;
     };
-    pattern rootPattern;
+    ppointer rootPattern;
 
-    QMap<QString, pattern> repository;
+    QMap<QString, ppointer> repository;
 
     QMap<QString, QTextCharFormat> theme;
 
     QTextCharFormat makeFormat(const QString& name, const QTextCharFormat& baseFormat = QTextCharFormat());
-    QMap<int, pattern> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
-    pattern makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat = QTextCharFormat());
-    QList<pattern> makePatternList(const QVariantList& patternListData);
+    QMap<int, ppointer> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
+    ppointer makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat = QTextCharFormat());
+    QList<ppointer> makePatternList(const QVariantList& patternListData);
+    void resolveChildPatterns(ppointer pattern);
 };
 
 QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextCharFormat& baseFormat)
@@ -51,9 +56,9 @@ QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextC
     return format;
 }
 
-QMap<int, HighlighterPrivate::pattern> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat)
+QMap<int, HighlighterPrivate::ppointer> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat)
 {
-    QMap<int, pattern> captures;
+    QMap<int, ppointer> captures;
     QMapIterator<QString, QVariant> iter(capturesData);
     while (iter.hasNext()) {
         iter.next();
@@ -64,43 +69,57 @@ QMap<int, HighlighterPrivate::pattern> HighlighterPrivate::makeCaptures(const QV
     return captures;
 }
 
-HighlighterPrivate::pattern HighlighterPrivate::makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat)
+HighlighterPrivate::ppointer HighlighterPrivate::makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat)
 {
-    if (patternData.contains("include")) {
-        return this->repository[patternData.value("include").toString()];
-    } else {
-        HighlighterPrivate::pattern pattern;
-        pattern.name = patternData.value("name").toString();
-        pattern.begin = patternData.value("begin").toString();
-        pattern.end = patternData.value("end").toString();
-        pattern.match = patternData.value("match").toString();
-        QVariant patternListData = patternData.value("patterns");
-        if (patternListData.isValid()) {
-            pattern.patterns = makePatternList(patternListData.toList());
-        }
-
-        pattern.format = makeFormat(pattern.name, baseFormat);
-
-        QVariant capturesData = patternData.value("captures");
-        pattern.captures = makeCaptures(capturesData.toMap(), pattern.format);
-        QVariant beginCapturesData = patternData.value("beginCaptures");
-        pattern.beginCaptures = makeCaptures(beginCapturesData.toMap(), pattern.format);
-        QVariant endCapturesData = patternData.value("endCaptures");
-        pattern.endCaptures = makeCaptures(endCapturesData.toMap(), pattern.format);
-
-        return pattern;
+    HighlighterPrivate::ppointer pattern(new HighlighterPrivate::pattern);
+    pattern->name = patternData.value("name").toString();
+    pattern->include = patternData.value("include").toString();
+    pattern->begin = patternData.value("begin").toString();
+    pattern->end = patternData.value("end").toString();
+    pattern->match = patternData.value("match").toString();
+    QVariant patternListData = patternData.value("patterns");
+    if (patternListData.isValid()) {
+        pattern->patterns = makePatternList(patternListData.toList());
     }
+
+    pattern->format = makeFormat(pattern->name, baseFormat);
+
+    QVariant capturesData = patternData.value("captures");
+    pattern->captures = makeCaptures(capturesData.toMap(), pattern->format);
+    QVariant beginCapturesData = patternData.value("beginCaptures");
+    pattern->beginCaptures = makeCaptures(beginCapturesData.toMap(), pattern->format);
+    QVariant endCapturesData = patternData.value("endCaptures");
+    pattern->endCaptures = makeCaptures(endCapturesData.toMap(), pattern->format);
+
+    return pattern;
 }
 
-QList<HighlighterPrivate::pattern> HighlighterPrivate::makePatternList(const QVariantList& patternListData)
+QList<HighlighterPrivate::ppointer> HighlighterPrivate::makePatternList(const QVariantList& patternListData)
 {
-    QList<HighlighterPrivate::pattern> patterns;
+    QList<HighlighterPrivate::ppointer> patterns;
     QListIterator<QVariant> iter(patternListData);
     while (iter.hasNext()) {
         QVariantMap patternData = iter.next().toMap();
         patterns << makePattern(patternData, theme.value(""));
     }
     return patterns;
+}
+
+void HighlighterPrivate::resolveChildPatterns(ppointer rootPattern)
+{
+    QList<ppointer>& patterns = rootPattern->patterns;
+
+    for (int i = 0; i < patterns.length(); i++) {
+        ppointer& pattern = patterns[i];
+        if (pattern->include != QString()) {
+            if (this->repository.contains(pattern->include)) {
+                pattern = this->repository.value(pattern->include);
+            } else {
+                qWarning() << "Pattern not in repository" << pattern->include;
+            }
+        }
+        resolveChildPatterns(pattern);
+    }
 }
 
 Highlighter::Highlighter(QTextDocument* document) :
@@ -180,32 +199,33 @@ void Highlighter::readSyntaxFile(const QByteArray& syntaxFile)
     QVariantMap rootPatternData;
     rootPatternData["patterns"] = def.value("patterns");
     d->rootPattern = d->makePattern(rootPatternData);
+    d->resolveChildPatterns(d->rootPattern);
 }
 
 void Highlighter::highlightBlock(const QString &text)
 {
-    QList<HighlighterPrivate::pattern> contextStack;
+    QList<HighlighterPrivate::ppointer> contextStack;
     contextStack.append(d->rootPattern);
 
     QTextCharFormat defaultFormat = d->theme[""];
     int index = 0;
     while (index < text.length()) {
-        HighlighterPrivate::pattern context = contextStack.last();
+        HighlighterPrivate::ppointer context = contextStack.last();
 
         bool found = false;
 
-        if (context.end != QString()) {
-            HighlighterPrivate::pattern pattern = context;
-            QRegExp exp("^" + pattern.end);
+        if (context->end != QString()) {
+            HighlighterPrivate::ppointer pattern = context;
+            QRegExp exp("^" + pattern->end);
             if (exp.indexIn(text, index, QRegExp::CaretAtOffset) == index) {
                 int length = exp.matchedLength();
-                setFormat(index, length, pattern.format);
+                setFormat(index, length, pattern->format);
                 for (int c = 1; c <= exp.captureCount(); c++) {
                     if (exp.pos(c) != -1) {
-                        if (pattern.endCaptures.contains(c)) {
-                            setFormat(exp.pos(c), exp.cap(c).length(), pattern.endCaptures[c].format);
-                        } else if (pattern.captures.contains(c)) {
-                            setFormat(exp.pos(c), exp.cap(c).length(), pattern.captures[c].format);
+                        if (pattern->endCaptures.contains(c)) {
+                            setFormat(exp.pos(c), exp.cap(c).length(), pattern->endCaptures[c]->format);
+                        } else if (pattern->captures.contains(c)) {
+                            setFormat(exp.pos(c), exp.cap(c).length(), pattern->captures[c]->format);
                         }
                     }
                 }
@@ -216,20 +236,20 @@ void Highlighter::highlightBlock(const QString &text)
             }
         }
 
-        foreach (HighlighterPrivate::pattern pattern, context.patterns) {
-            if (pattern.name == QString())
+        foreach (HighlighterPrivate::ppointer pattern, context->patterns) {
+            if (pattern->name == QString())
                 continue;
-            if (pattern.begin != QString()) {
-                QRegExp exp("^" + pattern.begin);
+            if (pattern->begin != QString()) {
+                QRegExp exp("^" + pattern->begin);
                 if (exp.indexIn(text, index, QRegExp::CaretAtOffset) == index) {
                     int length = exp.matchedLength();
-                    setFormat(index, length, pattern.format);
+                    setFormat(index, length, pattern->format);
                     for (int c = 1; c <= exp.captureCount(); c++) {
                         if (exp.pos(c) != -1) {
-                            if (pattern.beginCaptures.contains(c)) {
-                                setFormat(exp.pos(c), exp.cap(c).length(), pattern.beginCaptures[c].format);
-                            } else if (pattern.captures.contains(c)) {
-                                setFormat(exp.pos(c), exp.cap(c).length(), pattern.captures[c].format);
+                            if (pattern->beginCaptures.contains(c)) {
+                                setFormat(exp.pos(c), exp.cap(c).length(), pattern->beginCaptures[c]->format);
+                            } else if (pattern->captures.contains(c)) {
+                                setFormat(exp.pos(c), exp.cap(c).length(), pattern->captures[c]->format);
                             }
                         }
                     }
@@ -240,15 +260,15 @@ void Highlighter::highlightBlock(const QString &text)
                 } else {
                     continue;
                 }
-            } else if (pattern.match != QString()) {
-                QRegExp exp("^" + pattern.match);
+            } else if (pattern->match != QString()) {
+                QRegExp exp("^" + pattern->match);
                 if (exp.indexIn(text, index, QRegExp::CaretAtOffset) == index) {
                     int length = exp.matchedLength();
-                    setFormat(index, length, pattern.format);
+                    setFormat(index, length, pattern->format);
                     for (int c = 1; c <= exp.captureCount(); c++) {
                         if (exp.pos(c) != -1) {
-                            if (pattern.captures.contains(c)) {
-                                setFormat(exp.pos(c), exp.cap(c).length(), pattern.captures[c].format);
+                            if (pattern->captures.contains(c)) {
+                                setFormat(exp.pos(c), exp.cap(c).length(), pattern->captures[c]->format);
                             }
                         }
                     }
@@ -261,7 +281,7 @@ void Highlighter::highlightBlock(const QString &text)
             }
         }
         if (!found) {
-            setFormat(index, 1, context.format);
+            setFormat(index, 1, context->format);
             index++;
         }
     }
