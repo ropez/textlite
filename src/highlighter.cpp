@@ -212,6 +212,9 @@ void Highlighter::highlightBlock(const QString &text)
 {
     enum MatchType { Normal, Begin, End };
 
+    if (!d->rootPattern)
+        return;
+
     QList<HighlighterPrivate::ppointer> contextStack;
     contextStack.append(d->rootPattern);
 
