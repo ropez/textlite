@@ -1,24 +1,27 @@
 #include "bundlemanager.h"
 #include "highlighter.h"
+#include "plistreader.h"
 
 #include <QDir>
 
 #include <QtDebug>
 
-Highlighter* Bundle::createHighlighter(QTextDocument *document) const
+class BundleManagerPrivate
 {
-    Highlighter* highlighter = new Highlighter(document);
+    friend class BundleManager;
 
-    // XXX
-    highlighter->readThemeFile("redcar-bundles/Themes/Espresso.tmTheme");
-    highlighter->readSyntaxFile("redcar-bundles/Bundles/XML.tmbundle/Syntaxes/XML.plist");
-
-    return highlighter;
-}
+    QMap<QString, QString> bundles;
+};
 
 BundleManager::BundleManager(QObject *parent) :
-    QObject(parent)
+    QObject(parent),
+    d(new BundleManagerPrivate)
 {
+}
+
+BundleManager::~BundleManager()
+{
+    delete d;
 }
 
 void BundleManager::readBundles(const QString &path)
@@ -36,7 +39,13 @@ void BundleManager::readBundles(const QString &path)
             nameFilters << "*.tmLanguage";
             syntaxDir.setNameFilters(nameFilters);
             foreach (QString file, syntaxDir.entryList()) {
-                qDebug() << syntaxDir.filePath(file);
+                QString syntaxFile = syntaxDir.filePath(file);
+                PlistReader reader;
+                QVariantMap syntaxData = reader.read(syntaxFile).toMap();
+                QVariantList fileTypes = syntaxData.value("fileTypes").toList();
+                foreach (QVariant type, fileTypes) {
+                    d->bundles[type.toString()] = syntaxFile;
+                }
             }
         }
     }
@@ -52,7 +61,16 @@ void BundleManager::readBundles(const QString &path)
     //    }
 }
 
-Bundle* BundleManager::getBundleForExtension(const QString& extension)
+Highlighter* BundleManager::getHighlighterForExtension(const QString& extension, QTextDocument* document)
 {
-    return new Bundle();
+    Highlighter* highlighter = new Highlighter(document);
+
+    // XXX
+    highlighter->readThemeFile("redcar-bundles/Themes/Espresso.tmTheme");
+
+    if (d->bundles.contains(extension)) {
+        highlighter->readSyntaxFile(d->bundles.value(extension));
+    }
+
+    return highlighter;
 }

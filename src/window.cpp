@@ -31,7 +31,5 @@ void Window::setFileName(const QString &fileName)
 {
     QFileInfo info(fileName);
     editor->setFileName(fileName);
-    Bundle* bundle = bundleManager->getBundleForExtension(info.completeSuffix());
-    bundle->createHighlighter(editor->document());
-    delete bundle;
+    bundleManager->getHighlighterForExtension(info.completeSuffix(), editor->document());
 }

@@ -6,26 +6,25 @@
 class Highlighter;
 class QTextDocument;
 
-class Bundle
-{
-public:
-    Highlighter* createHighlighter(QTextDocument* document) const;
-};
+class BundleManagerPrivate;
 
 class BundleManager : public QObject
 {
     Q_OBJECT
 public:
     explicit BundleManager(QObject *parent = 0);
+    ~BundleManager();
 
     void readBundles(const QString& path);
 
-    Bundle* getBundleForExtension(const QString& extension);
+    Highlighter* getHighlighterForExtension(const QString& extension, QTextDocument* document);
 
 signals:
 
 public slots:
 
+private:
+    BundleManagerPrivate* d;
 };
 
 #endif // BUNDLEMANAGER_H
