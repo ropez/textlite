@@ -10,36 +10,39 @@
 
 #include <QtDebug>
 
+namespace {
+struct Node;
+typedef QExplicitlySharedDataPointer<Node> Nodeptr;
+
+struct Node : public QSharedData {
+    QString name;
+    QString include;
+    QString begin;
+    QString end;
+    QString match;
+    QMap<int, Nodeptr> captures;
+    QMap<int, Nodeptr> beginCaptures;
+    QMap<int, Nodeptr> endCaptures;
+    QList<Nodeptr> patterns;
+    QTextCharFormat format;
+};
+}
+
 class HighlighterPrivate
 {
     friend class Highlighter;
 
-    struct pattern;
-    typedef QExplicitlySharedDataPointer<pattern> ppointer;
+    Nodeptr rootPattern;
 
-    struct pattern : public QSharedData {
-        QString name;
-        QString include;
-        QString begin;
-        QString end;
-        QString match;
-        QMap<int, ppointer> captures;
-        QMap<int, ppointer> beginCaptures;
-        QMap<int, ppointer> endCaptures;
-        QList<ppointer> patterns;
-        QTextCharFormat format;
-    };
-    ppointer rootPattern;
-
-    QMap<QString, ppointer> repository;
+    QMap<QString, Nodeptr> repository;
 
     QMap<QString, QTextCharFormat> theme;
 
     QTextCharFormat makeFormat(const QString& name, const QTextCharFormat& baseFormat = QTextCharFormat());
-    QMap<int, ppointer> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
-    ppointer makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat = QTextCharFormat());
-    QList<ppointer> makePatternList(const QVariantList& patternListData);
-    void resolveChildPatterns(ppointer pattern);
+    QMap<int, Nodeptr> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
+    Nodeptr makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat = QTextCharFormat());
+    QList<Nodeptr> makePatternList(const QVariantList& patternListData);
+    void resolveChildPatterns(Nodeptr rootPattern);
 };
 
 QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextCharFormat& baseFormat)
@@ -56,9 +59,9 @@ QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextC
     return format;
 }
 
-QMap<int, HighlighterPrivate::ppointer> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat)
+QMap<int, Nodeptr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat)
 {
-    QMap<int, ppointer> captures;
+    QMap<int, Nodeptr> captures;
     QMapIterator<QString, QVariant> iter(capturesData);
     while (iter.hasNext()) {
         iter.next();
@@ -69,40 +72,40 @@ QMap<int, HighlighterPrivate::ppointer> HighlighterPrivate::makeCaptures(const Q
     return captures;
 }
 
-HighlighterPrivate::ppointer HighlighterPrivate::makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat)
+Nodeptr HighlighterPrivate::makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat)
 {
-    HighlighterPrivate::ppointer pattern(new HighlighterPrivate::pattern);
-    pattern->name = patternData.value("name").toString();
-    pattern->include = patternData.value("include").toString();
-    pattern->begin = patternData.value("begin").toString();
-    pattern->end = patternData.value("end").toString();
-    pattern->match = patternData.value("match").toString();
+    Nodeptr node(new Node);
+    node->name = patternData.value("name").toString();
+    node->include = patternData.value("include").toString();
+    node->begin = patternData.value("begin").toString();
+    node->end = patternData.value("end").toString();
+    node->match = patternData.value("match").toString();
     QVariant patternListData = patternData.value("patterns");
     if (patternListData.isValid()) {
-        pattern->patterns = makePatternList(patternListData.toList());
+        node->patterns = makePatternList(patternListData.toList());
     }
 
-    pattern->format = makeFormat(pattern->name, baseFormat);
+    node->format = makeFormat(node->name, baseFormat);
 
     QVariant capturesData = patternData.value("captures");
-    pattern->captures = makeCaptures(capturesData.toMap(), pattern->format);
+    node->captures = makeCaptures(capturesData.toMap(), node->format);
     QVariant beginCapturesData = patternData.value("beginCaptures");
     if (beginCapturesData.isValid())
-        pattern->beginCaptures = makeCaptures(beginCapturesData.toMap(), pattern->format);
+        node->beginCaptures = makeCaptures(beginCapturesData.toMap(), node->format);
     else
-        pattern->beginCaptures = pattern->captures;
+        node->beginCaptures = node->captures;
     QVariant endCapturesData = patternData.value("endCaptures");
     if (endCapturesData.isValid())
-        pattern->endCaptures = makeCaptures(endCapturesData.toMap(), pattern->format);
+        node->endCaptures = makeCaptures(endCapturesData.toMap(), node->format);
     else
-        pattern->endCaptures = pattern->captures;
+        node->endCaptures = node->captures;
 
-    return pattern;
+    return node;
 }
 
-QList<HighlighterPrivate::ppointer> HighlighterPrivate::makePatternList(const QVariantList& patternListData)
+QList<Nodeptr> HighlighterPrivate::makePatternList(const QVariantList& patternListData)
 {
-    QList<HighlighterPrivate::ppointer> patterns;
+    QList<Nodeptr> patterns;
     QListIterator<QVariant> iter(patternListData);
     while (iter.hasNext()) {
         QVariantMap patternData = iter.next().toMap();
@@ -111,14 +114,14 @@ QList<HighlighterPrivate::ppointer> HighlighterPrivate::makePatternList(const QV
     return patterns;
 }
 
-void HighlighterPrivate::resolveChildPatterns(ppointer rootPattern)
+void HighlighterPrivate::resolveChildPatterns(Nodeptr rootPattern)
 {
-    QList<ppointer>& patterns = rootPattern->patterns;
+    QList<Nodeptr>& patterns = rootPattern->patterns;
 
-    QMutableListIterator<ppointer> iter(patterns);
+    QMutableListIterator<Nodeptr> iter(patterns);
     iter.toBack();
     while (iter.hasPrevious()) {
-        ppointer& pattern = iter.previous();
+        Nodeptr& pattern = iter.previous();
         if (pattern->include != QString()) {
             if (this->repository.contains(pattern->include)) {
                 iter.setValue(this->repository.value(pattern->include));
@@ -127,9 +130,9 @@ void HighlighterPrivate::resolveChildPatterns(ppointer rootPattern)
             }
         }
         if (pattern->match == QString() && pattern->begin == QString()) {
-            QList<ppointer> childPatterns = pattern->patterns;
+            QList<Nodeptr> childPatterns = pattern->patterns;
             iter.remove();
-            foreach (ppointer childPattern, childPatterns) {
+            foreach (Nodeptr childPattern, childPatterns) {
                 iter.insert(childPattern);
             }
         } else {
@@ -212,21 +215,21 @@ void Highlighter::highlightBlock(const QString &text)
     if (!d->rootPattern)
         return;
 
-    QList<HighlighterPrivate::ppointer> contextStack;
+    QList<Nodeptr> contextStack;
     contextStack.append(d->rootPattern);
 
     int index = 0;
     while (index < text.length()) {
-        HighlighterPrivate::ppointer context = contextStack.last();
+        Nodeptr context = contextStack.last();
 
         int foundPos = text.length();
         int foundLength = 0;
 
-        HighlighterPrivate::ppointer foundPattern;
+        Nodeptr foundPattern;
         MatchType foundMatchType;
 
         if (context->end != QString()) {
-            HighlighterPrivate::ppointer pattern = context;
+            Nodeptr pattern = context;
             QRegExp exp(pattern->end);
             int pos = exp.indexIn(text, index);
             if (pos != -1 && pos < foundPos) {
@@ -237,7 +240,7 @@ void Highlighter::highlightBlock(const QString &text)
             }
         }
 
-        foreach (HighlighterPrivate::ppointer pattern, context->patterns) {
+        foreach (Nodeptr pattern, context->patterns) {
             if (pattern->begin != QString()) {
                 QRegExp exp(pattern->begin);
                 int pos = exp.indexIn(text, index);
@@ -273,7 +276,7 @@ void Highlighter::highlightBlock(const QString &text)
             setFormat(foundPos, foundLength, foundPattern->format);
 
             QRegExp exp;
-            QMap<int, HighlighterPrivate::ppointer> captures;
+            QMap<int, Nodeptr> captures;
 
             switch (foundMatchType) {
             case Normal:
