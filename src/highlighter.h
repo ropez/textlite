@@ -10,6 +10,7 @@ class Highlighter : public QSyntaxHighlighter
     Q_OBJECT
 public:
     explicit Highlighter(QTextDocument *document);
+    ~Highlighter();
 
     void readThemeFile(const QByteArray& themeFile);
     void readSyntaxFile(const QByteArray& syntaxFile);

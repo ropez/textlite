@@ -147,6 +147,11 @@ Highlighter::Highlighter(QTextDocument* document) :
 {
 }
 
+Highlighter::~Highlighter()
+{
+    delete d;
+}
+
 void Highlighter::readThemeFile(const QByteArray& themeFile)
 {
     PlistReader reader;
