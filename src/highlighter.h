@@ -12,8 +12,8 @@ public:
     explicit Highlighter(QTextDocument *document);
     ~Highlighter();
 
-    void readThemeFile(const QByteArray& themeFile);
-    void readSyntaxFile(const QByteArray& syntaxFile);
+    void readThemeFile(const QString& themeFile);
+    void readSyntaxFile(const QString& syntaxFile);
 
 protected:
     void highlightBlock(const QString &text);

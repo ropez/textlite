@@ -152,7 +152,7 @@ Highlighter::~Highlighter()
     delete d;
 }
 
-void Highlighter::readThemeFile(const QByteArray& themeFile)
+void Highlighter::readThemeFile(const QString& themeFile)
 {
     PlistReader reader;
     QVariantMap def = reader.read(themeFile).toMap();
@@ -194,7 +194,7 @@ void Highlighter::readThemeFile(const QByteArray& themeFile)
     }
 }
 
-void Highlighter::readSyntaxFile(const QByteArray& syntaxFile)
+void Highlighter::readSyntaxFile(const QString& syntaxFile)
 {
     PlistReader reader;
     QVariantMap def = reader.read(syntaxFile).toMap();
