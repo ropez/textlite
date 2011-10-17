@@ -222,6 +222,10 @@ void Highlighter::highlightBlock(const QString &text)
 
     QList<Nodeptr> contextStack;
     contextStack.append(d->rootPattern);
+    int state = previousBlockState();
+    if (state != -1) {
+        contextStack.append(d->rootPattern->patterns[state]);
+    }
 
     int index = 0;
     while (index < text.length()) {
@@ -315,5 +319,12 @@ void Highlighter::highlightBlock(const QString &text)
         }
         Q_ASSERT(index < foundPos + foundLength);
         index = foundPos + foundLength;
+    }
+    if (contextStack.length() == 1) {
+        setCurrentBlockState(-1);
+    } else if (contextStack.length() == 2) {
+        setCurrentBlockState(contextStack.first()->patterns.indexOf(contextStack.last()));
+    } else {
+        qWarning() << "Context too deep";
     }
 }
