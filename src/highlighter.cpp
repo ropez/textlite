@@ -115,11 +115,12 @@ void HighlighterPrivate::resolveChildPatterns(ppointer rootPattern)
 {
     QList<ppointer>& patterns = rootPattern->patterns;
 
-    for (int i = 0; i < patterns.length(); i++) {
-        ppointer& pattern = patterns[i];
+    QMutableListIterator<ppointer> iter(patterns);
+    while (iter.hasNext()) {
+        ppointer& pattern = iter.next();
         if (pattern->include != QString()) {
             if (this->repository.contains(pattern->include)) {
-                pattern = this->repository.value(pattern->include);
+                iter.setValue(this->repository.value(pattern->include));
             } else {
                 qWarning() << "Pattern not in repository" << pattern->include;
             }
