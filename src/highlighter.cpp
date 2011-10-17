@@ -280,7 +280,7 @@ void Highlighter::highlightBlock(const QString &text)
         }
 
         // Did we find anything to highlight?
-        if (foundLength > 0) {
+        if (foundPos != text.length()) {
             Q_ASSERT(foundPos < text.length());
             setFormat(foundPos, foundLength, foundPattern->format);
 
@@ -317,7 +317,6 @@ void Highlighter::highlightBlock(const QString &text)
                 }
             }
         }
-        Q_ASSERT(index < foundPos + foundLength);
         index = foundPos + foundLength;
     }
     if (contextStack.length() == 1) {
