@@ -10,6 +10,8 @@
 
 #include <QtDebug>
 
+#include <boost/regex.hpp>
+
 namespace {
 struct Node;
 typedef QExplicitlySharedDataPointer<Node> Nodeptr;
@@ -17,9 +19,9 @@ typedef QExplicitlySharedDataPointer<Node> Nodeptr;
 struct Node : public QSharedData {
     QString name;
     QString include;
-    QString begin;
-    QString end;
-    QString match;
+    std::wstring begin;
+    std::wstring end;
+    std::wstring match;
     QMap<int, Nodeptr> captures;
     QMap<int, Nodeptr> beginCaptures;
     QMap<int, Nodeptr> endCaptures;
@@ -77,9 +79,9 @@ Nodeptr HighlighterPrivate::makePattern(const QVariantMap& patternData, const QT
     Nodeptr node(new Node);
     node->name = patternData.value("name").toString();
     node->include = patternData.value("include").toString();
-    node->begin = patternData.value("begin").toString();
-    node->end = patternData.value("end").toString();
-    node->match = patternData.value("match").toString();
+    node->begin = patternData.value("begin").toString().toStdWString();
+    node->end = patternData.value("end").toString().toStdWString();
+    node->match = patternData.value("match").toString().toStdWString();
     QVariant patternListData = patternData.value("patterns");
     if (patternListData.isValid()) {
         node->patterns = makePatternList(patternListData.toList());
@@ -129,7 +131,7 @@ void HighlighterPrivate::resolveChildPatterns(Nodeptr rootPattern)
                 qWarning() << "Pattern not in repository" << pattern->include;
             }
         }
-        if (pattern->match == QString() && pattern->begin == QString()) {
+        if (pattern->match.empty() && pattern->begin.empty()) {
             QList<Nodeptr> childPatterns = pattern->patterns;
             iter.remove();
             foreach (Nodeptr childPattern, childPatterns) {
@@ -227,97 +229,118 @@ void Highlighter::highlightBlock(const QString &text)
         contextStack.append(d->rootPattern->patterns[state]);
     }
 
-    int index = 0;
-    while (index < text.length()) {
+
+    typedef std::wstring::const_iterator pos_t;
+    typedef std::wstring::difference_type diff_t;
+
+    const boost::match_flag_type flags = boost::match_default;
+    const std::wstring _text = text.toStdWString();
+    const pos_t base = _text.begin();
+    const pos_t end = _text.end();
+
+    pos_t index = base;
+    while (index != end) {
         Nodeptr context = contextStack.last();
 
-        int foundPos = text.length();
-        int foundLength = 0;
+        const diff_t offset = index - base;
+        diff_t foundPos = _text.length();
+        diff_t foundLength = 0;
 
         Nodeptr foundPattern;
         MatchType foundMatchType;
 
-        if (context->end != QString()) {
+        if (!context->end.empty()) {
             Nodeptr pattern = context;
-            QRegExp exp(pattern->end);
-            int pos = exp.indexIn(text, index);
-            if (pos != -1 && pos < foundPos) {
-                foundPos = pos;
-                foundLength = exp.matchedLength();
-                foundPattern = pattern;
-                foundMatchType = End;
+            boost::wregex exp(pattern->end);
+            boost::wsmatch match;
+            if (boost::regex_search(index, end, match, exp, flags, base)) {
+                diff_t pos = offset + match.position();
+                if (pos < foundPos) {
+                    foundPos = pos;
+                    foundLength = match.length();
+                    foundPattern = pattern;
+                    foundMatchType = End;
+                }
             }
         }
 
         foreach (Nodeptr pattern, context->patterns) {
-            if (pattern->begin != QString()) {
-                QRegExp exp(pattern->begin);
-                int pos = exp.indexIn(text, index);
-                if (pos != -1 && pos < foundPos) {
-                    foundPos = pos;
-                    foundLength = exp.matchedLength();
-                    foundPattern = pattern;
-                    foundMatchType = Begin;
+            if (!pattern->begin.empty()) {
+                boost::wregex exp(pattern->begin);
+                boost::wsmatch match;
+                if (boost::regex_search(index, end, match, exp, flags, base)) {
+                    diff_t pos = offset + match.position();
+                    if (pos < foundPos) {
+                        foundPos = pos;
+                        foundLength = match.length();
+                        foundPattern = pattern;
+                        foundMatchType = Begin;
+                    }
                 }
-            } else if (pattern->match != QString()) {
-                QRegExp exp(pattern->match);
-                int pos = exp.indexIn(text, index);
-                if (pos != -1 && pos < foundPos) {
-                    foundPos = pos;
-                    foundLength = exp.matchedLength();
-                    foundPattern = pattern;
-                    foundMatchType = Normal;
+            } else if (!pattern->match.empty()) {
+                boost::wregex exp(pattern->match);
+                boost::wsmatch match;
+                if (boost::regex_search(index, end, match, exp, flags, base)) {
+                    diff_t pos = offset + match.position();
+                    if (pos < foundPos) {
+                        foundPos = pos;
+                        foundLength = match.length();
+                        foundPattern = pattern;
+                        foundMatchType = Normal;
+                    }
                 }
             }
-            Q_ASSERT(foundPos >= index);
-            if (foundPos == index)
+            Q_ASSERT(foundPos >= offset);
+            if (foundPos == offset)
                 break; // Don't need to continue
         }
 
         // Highlight skipped section
-        if (foundPos != index) {
-            setFormat(index, foundPos, context->format);
+        if (foundPos != offset) {
+            setFormat(offset, foundPos, context->format);
         }
 
         // Did we find anything to highlight?
         if (foundPos != text.length()) {
-            Q_ASSERT(foundPos < text.length());
+            Q_ASSERT(base + foundPos < end);
             setFormat(foundPos, foundLength, foundPattern->format);
 
-            QRegExp exp;
+            boost::wregex exp;
             QMap<int, Nodeptr> captures;
 
             switch (foundMatchType) {
             case Normal:
-                exp.setPattern(foundPattern->match);
+                exp.set_expression(foundPattern->match);
                 captures = foundPattern->captures;
                 break;
             case Begin:
-                exp.setPattern(foundPattern->begin);
+                exp.set_expression(foundPattern->begin);
                 captures = foundPattern->beginCaptures;
                 contextStack.append(foundPattern);
                 break;
             case End:
-                exp.setPattern(foundPattern->end);
+                exp.set_expression(foundPattern->end);
                 captures = foundPattern->endCaptures;
                 contextStack.removeLast();
                 break;
             }
 
             // Re-run regexp to get captures
-            exp.indexIn(text, index);
-            for (int c = 1; c <= exp.captureCount(); c++) {
-                if (exp.pos(c) != -1) {
+            boost::wsmatch match;
+            boost::regex_search(index, end, match, exp, flags, base);
+            for (size_t c = 1; c <= match.size(); c++) {
+                if (match.position(c) != -1) {
+                    diff_t pos = offset + match.position(c);
                     if (captures.contains(c)) {
-                        Q_ASSERT(exp.pos(c) >= foundPos);
-                        Q_ASSERT(exp.cap(c).length() > 0);
-                        Q_ASSERT(exp.pos(c) + exp.cap(c).length() <= foundPos + foundLength);
-                        setFormat(exp.pos(c), exp.cap(c).length(), captures[c]->format);
+                        Q_ASSERT(pos >= foundPos);
+                        Q_ASSERT(match.length(c) > 0);
+                        Q_ASSERT(pos + match.length(c) <= foundPos + foundLength);
+                        setFormat(pos, match.length(c), captures[c]->format);
                     }
                 }
             }
         }
-        index = foundPos + foundLength;
+        index = base + foundPos + foundLength;
     }
     if (contextStack.length() == 1) {
         setCurrentBlockState(-1);
