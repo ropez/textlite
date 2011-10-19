@@ -30,4 +30,4 @@ HEADERS  += mainwindow.h \
 FORMS += \
     navigator.ui
 
-unix|win32: LIBS += -lboost_regex-mt
+unix|win32: LIBS += -lboost_regex
