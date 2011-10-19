@@ -243,14 +243,14 @@ void Highlighter::highlightBlock(const QString &text)
 
     pos_t index = base;
     while (index != end) {
+        Q_ASSERT(contextStack.size() > 0);
         Nodeptr context = contextStack.last();
 
         const diff_t offset = index - base;
         diff_t foundPos = _text.length();
-        diff_t foundLength = 0;
 
         Nodeptr foundPattern;
-        MatchType foundMatchType;
+        MatchType foundMatchType = Normal;
         boost::wsmatch foundMatch;
 
         if (!context->end.empty()) {
@@ -260,7 +260,6 @@ void Highlighter::highlightBlock(const QString &text)
                 diff_t pos = offset + match.position();
                 if (pos < foundPos) {
                     foundPos = pos;
-                    foundLength = match.length();
                     foundPattern = pattern;
                     foundMatchType = End;
                     foundMatch.swap(match);
@@ -275,7 +274,6 @@ void Highlighter::highlightBlock(const QString &text)
                     diff_t pos = offset + match.position();
                     if (pos < foundPos) {
                         foundPos = pos;
-                        foundLength = match.length();
                         foundPattern = pattern;
                         foundMatchType = Begin;
                         foundMatch.swap(match);
@@ -287,7 +285,6 @@ void Highlighter::highlightBlock(const QString &text)
                     diff_t pos = offset + match.position();
                     if (pos < foundPos) {
                         foundPos = pos;
-                        foundLength = match.length();
                         foundPattern = pattern;
                         foundMatchType = Normal;
                         foundMatch.swap(match);
@@ -305,40 +302,41 @@ void Highlighter::highlightBlock(const QString &text)
         }
 
         // Did we find anything to highlight?
-        if (foundPos != text.length()) {
-            Q_ASSERT(base + foundPos < end);
-            setFormat(foundPos, foundLength, foundPattern->format);
+        if (foundMatch.empty())
+            break;
 
-            QMap<int, Nodeptr> captures;
+        Q_ASSERT(base + foundPos < end);
+        setFormat(foundPos, foundMatch.length(), foundPattern->format);
 
-            switch (foundMatchType) {
-            case Normal:
-                captures = foundPattern->captures;
-                break;
-            case Begin:
-                captures = foundPattern->beginCaptures;
-                contextStack.append(foundPattern);
-                break;
-            case End:
-                captures = foundPattern->endCaptures;
-                contextStack.removeLast();
-                break;
-            }
+        QMap<int, Nodeptr> captures;
 
-            // Highlight captures
-            for (size_t c = 1; c <= foundMatch.size(); c++) {
-                if (foundMatch.position(c) != -1) {
-                    diff_t pos = offset + foundMatch.position(c);
-                    if (captures.contains(c)) {
-                        Q_ASSERT(pos >= foundPos);
-                        Q_ASSERT(foundMatch.length(c) > 0);
-                        Q_ASSERT(pos + foundMatch.length(c) <= foundPos + foundLength);
-                        setFormat(pos, foundMatch.length(c), captures[c]->format);
-                    }
+        switch (foundMatchType) {
+        case Normal:
+            captures = foundPattern->captures;
+            break;
+        case Begin:
+            captures = foundPattern->beginCaptures;
+            contextStack.append(foundPattern);
+            break;
+        case End:
+            captures = foundPattern->endCaptures;
+            contextStack.removeLast();
+            break;
+        }
+
+        // Highlight captures
+        for (size_t c = 1; c <= foundMatch.size(); c++) {
+            if (foundMatch.position(c) != -1) {
+                diff_t pos = offset + foundMatch.position(c);
+                if (captures.contains(c)) {
+                    Q_ASSERT(pos >= foundPos);
+                    Q_ASSERT(foundMatch.length(c) > 0);
+                    Q_ASSERT(pos + foundMatch.length(c) <= foundPos + foundMatch.length());
+                    setFormat(pos, foundMatch.length(c), captures[c]->format);
                 }
             }
         }
-        index = base + foundPos + foundLength;
+        index = base + foundPos + foundMatch.length();
     }
     if (contextStack.length() == 1) {
         setCurrentBlockState(-1);
