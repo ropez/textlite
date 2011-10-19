@@ -19,9 +19,9 @@ typedef QExplicitlySharedDataPointer<Node> Nodeptr;
 struct Node : public QSharedData {
     QString name;
     QString include;
-    std::wstring begin;
-    std::wstring end;
-    std::wstring match;
+    boost::wregex begin;
+    boost::wregex end;
+    boost::wregex match;
     QMap<int, Nodeptr> captures;
     QMap<int, Nodeptr> beginCaptures;
     QMap<int, Nodeptr> endCaptures;
@@ -79,9 +79,12 @@ Nodeptr HighlighterPrivate::makePattern(const QVariantMap& patternData, const QT
     Nodeptr node(new Node);
     node->name = patternData.value("name").toString();
     node->include = patternData.value("include").toString();
-    node->begin = patternData.value("begin").toString().toStdWString();
-    node->end = patternData.value("end").toString().toStdWString();
-    node->match = patternData.value("match").toString().toStdWString();
+    if (patternData.contains("begin"))
+        node->begin.set_expression(patternData.value("begin").toString().toStdWString());
+    if (patternData.contains("end"))
+        node->end.set_expression(patternData.value("end").toString().toStdWString());
+    if (patternData.contains("match"))
+        node->match.set_expression(patternData.value("match").toString().toStdWString());
     QVariant patternListData = patternData.value("patterns");
     if (patternListData.isValid()) {
         node->patterns = makePatternList(patternListData.toList());
@@ -248,45 +251,46 @@ void Highlighter::highlightBlock(const QString &text)
 
         Nodeptr foundPattern;
         MatchType foundMatchType;
+        boost::wsmatch foundMatch;
 
         if (!context->end.empty()) {
             Nodeptr pattern = context;
-            boost::wregex exp(pattern->end);
             boost::wsmatch match;
-            if (boost::regex_search(index, end, match, exp, flags, base)) {
+            if (boost::regex_search(index, end, match, pattern->end, flags, base)) {
                 diff_t pos = offset + match.position();
                 if (pos < foundPos) {
                     foundPos = pos;
                     foundLength = match.length();
                     foundPattern = pattern;
                     foundMatchType = End;
+                    foundMatch.swap(match);
                 }
             }
         }
 
         foreach (Nodeptr pattern, context->patterns) {
             if (!pattern->begin.empty()) {
-                boost::wregex exp(pattern->begin);
                 boost::wsmatch match;
-                if (boost::regex_search(index, end, match, exp, flags, base)) {
+                if (boost::regex_search(index, end, match, pattern->begin, flags, base)) {
                     diff_t pos = offset + match.position();
                     if (pos < foundPos) {
                         foundPos = pos;
                         foundLength = match.length();
                         foundPattern = pattern;
                         foundMatchType = Begin;
+                        foundMatch.swap(match);
                     }
                 }
             } else if (!pattern->match.empty()) {
-                boost::wregex exp(pattern->match);
                 boost::wsmatch match;
-                if (boost::regex_search(index, end, match, exp, flags, base)) {
+                if (boost::regex_search(index, end, match, pattern->match, flags, base)) {
                     diff_t pos = offset + match.position();
                     if (pos < foundPos) {
                         foundPos = pos;
                         foundLength = match.length();
                         foundPattern = pattern;
                         foundMatchType = Normal;
+                        foundMatch.swap(match);
                     }
                 }
             }
@@ -305,37 +309,31 @@ void Highlighter::highlightBlock(const QString &text)
             Q_ASSERT(base + foundPos < end);
             setFormat(foundPos, foundLength, foundPattern->format);
 
-            boost::wregex exp;
             QMap<int, Nodeptr> captures;
 
             switch (foundMatchType) {
             case Normal:
-                exp.set_expression(foundPattern->match);
                 captures = foundPattern->captures;
                 break;
             case Begin:
-                exp.set_expression(foundPattern->begin);
                 captures = foundPattern->beginCaptures;
                 contextStack.append(foundPattern);
                 break;
             case End:
-                exp.set_expression(foundPattern->end);
                 captures = foundPattern->endCaptures;
                 contextStack.removeLast();
                 break;
             }
 
-            // Re-run regexp to get captures
-            boost::wsmatch match;
-            boost::regex_search(index, end, match, exp, flags, base);
-            for (size_t c = 1; c <= match.size(); c++) {
-                if (match.position(c) != -1) {
-                    diff_t pos = offset + match.position(c);
+            // Highlight captures
+            for (size_t c = 1; c <= foundMatch.size(); c++) {
+                if (foundMatch.position(c) != -1) {
+                    diff_t pos = offset + foundMatch.position(c);
                     if (captures.contains(c)) {
                         Q_ASSERT(pos >= foundPos);
-                        Q_ASSERT(match.length(c) > 0);
-                        Q_ASSERT(pos + match.length(c) <= foundPos + foundLength);
-                        setFormat(pos, match.length(c), captures[c]->format);
+                        Q_ASSERT(foundMatch.length(c) > 0);
+                        Q_ASSERT(pos + foundMatch.length(c) <= foundPos + foundLength);
+                        setFormat(pos, foundMatch.length(c), captures[c]->format);
                     }
                 }
             }
