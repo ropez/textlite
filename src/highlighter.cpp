@@ -4,6 +4,7 @@
 #include <QTextCharFormat>
 #include <QRegExp>
 #include <QList>
+#include <QStack>
 #include <QMap>
 
 #include <QFile>
@@ -225,11 +226,11 @@ void Highlighter::highlightBlock(const QString &text)
     if (!d->rootPattern)
         return;
 
-    QList<Nodeptr> contextStack;
-    contextStack.append(d->rootPattern);
+    QStack<Nodeptr> contextStack;
+    contextStack.push(d->rootPattern);
     int state = previousBlockState();
     if (state != -1) {
-        contextStack.append(d->rootPattern->patterns[state]);
+        contextStack.push(d->rootPattern->patterns[state]);
     }
 
 
@@ -244,7 +245,7 @@ void Highlighter::highlightBlock(const QString &text)
     pos_t index = base;
     while (index != end) {
         Q_ASSERT(contextStack.size() > 0);
-        Nodeptr context = contextStack.last();
+        Nodeptr context = contextStack.top();
 
         const diff_t offset = index - base;
         diff_t foundPos = _text.length();
@@ -316,11 +317,11 @@ void Highlighter::highlightBlock(const QString &text)
             break;
         case Begin:
             captures = foundPattern->beginCaptures;
-            contextStack.append(foundPattern);
+            contextStack.push(foundPattern);
             break;
         case End:
             captures = foundPattern->endCaptures;
-            contextStack.removeLast();
+            contextStack.pop();
             break;
         }
 
@@ -338,9 +339,9 @@ void Highlighter::highlightBlock(const QString &text)
         }
         index = base + foundPos + foundMatch.length();
     }
-    if (contextStack.length() == 1) {
+    if (contextStack.size() == 1) {
         setCurrentBlockState(-1);
-    } else if (contextStack.length() == 2) {
+    } else if (contextStack.size() == 2) {
         setCurrentBlockState(contextStack.first()->patterns.indexOf(contextStack.last()));
     } else {
         qWarning() << "Context too deep";
