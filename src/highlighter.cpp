@@ -234,9 +234,10 @@ void Highlighter::highlightBlock(const QString &text)
         int state = previousBlockState();
         while (state > 0) {
             int range = contextStack.top()->patterns.size() + 1;
-            int index = state % range - 1;
+            div_t div = std::div(state, range);
+            int index = div.rem - 1;
             contextStack.push(contextStack.top()->patterns[index]);
-            state /= range;
+            state = div.quot;
         }
     }
 
