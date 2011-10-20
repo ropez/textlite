@@ -228,9 +228,16 @@ void Highlighter::highlightBlock(const QString &text)
 
     QStack<Nodeptr> contextStack;
     contextStack.push(d->rootPattern);
-    int state = previousBlockState();
-    if (state != -1) {
-        contextStack.push(d->rootPattern->patterns[state]);
+
+    // restore encoded state
+    {
+        int state = previousBlockState();
+        while (state > 0) {
+            int range = contextStack.top()->patterns.size() + 1;
+            int index = state % range - 1;
+            contextStack.push(contextStack.top()->patterns[index]);
+            state /= range;
+        }
     }
 
 
@@ -339,11 +346,20 @@ void Highlighter::highlightBlock(const QString &text)
         }
         index = base + foundPos + foundMatch.length();
     }
-    if (contextStack.size() == 1) {
-        setCurrentBlockState(-1);
-    } else if (contextStack.size() == 2) {
-        setCurrentBlockState(contextStack.first()->patterns.indexOf(contextStack.last()));
-    } else {
-        qWarning() << "Context too deep";
+
+    // encode and save state
+    {
+        qint64 state = 0;
+        while (contextStack.size() > 1) {
+            Nodeptr context = contextStack.pop();
+            int range = contextStack.top()->patterns.size() + 1;
+            int index = contextStack.top()->patterns.indexOf(context);
+            Q_ASSERT(index != -1);
+            state *= range;
+            state += (index + 1);
+            Q_ASSERT(state < 1UL << 31);
+            qDebug() << state;
+        }
+        setCurrentBlockState(static_cast<int>(state));
     }
 }
