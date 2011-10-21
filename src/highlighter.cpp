@@ -16,6 +16,7 @@
 namespace {
 struct Node;
 typedef QSharedPointer<Node> Nodeptr;
+typedef QWeakPointer<Node> Childptr;
 
 struct Node {
     QString name;
@@ -27,7 +28,7 @@ struct Node {
     QMap<int, Nodeptr> captures;
     QMap<int, Nodeptr> beginCaptures;
     QMap<int, Nodeptr> endCaptures;
-    QList<Nodeptr> patterns;
+    QList<Childptr> patterns;
     QTextCharFormat format;
     QTextCharFormat contentFormat;
 };
@@ -39,6 +40,7 @@ class HighlighterPrivate
 
     Nodeptr rootPattern;
 
+    QList<Nodeptr> all;
     QMap<QString, Nodeptr> repository;
 
     QMap<QString, QTextCharFormat> theme;
@@ -46,7 +48,7 @@ class HighlighterPrivate
     QTextCharFormat makeFormat(const QString& name, const QTextCharFormat& baseFormat = QTextCharFormat());
     QMap<int, Nodeptr> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
     Nodeptr makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat = QTextCharFormat());
-    QList<Nodeptr> makePatternList(const QVariantList& patternListData);
+    QList<Childptr> makePatternList(const QVariantList& patternListData);
     void resolveChildPatterns(Nodeptr rootPattern);
 };
 
@@ -80,6 +82,8 @@ QMap<int, Nodeptr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesD
 Nodeptr HighlighterPrivate::makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat)
 {
     Nodeptr node(new Node);
+    this->all.append(node);
+
     node->name = patternData.value("name").toString();
     node->contentName = patternData.value("contentName").toString();
     node->include = patternData.value("include").toString();
@@ -113,9 +117,9 @@ Nodeptr HighlighterPrivate::makePattern(const QVariantMap& patternData, const QT
     return node;
 }
 
-QList<Nodeptr> HighlighterPrivate::makePatternList(const QVariantList& patternListData)
+QList<Childptr> HighlighterPrivate::makePatternList(const QVariantList& patternListData)
 {
-    QList<Nodeptr> patterns;
+    QList<Childptr> patterns;
     QListIterator<QVariant> iter(patternListData);
     while (iter.hasNext()) {
         QVariantMap patternData = iter.next().toMap();
@@ -126,21 +130,22 @@ QList<Nodeptr> HighlighterPrivate::makePatternList(const QVariantList& patternLi
 
 void HighlighterPrivate::resolveChildPatterns(Nodeptr rootPattern)
 {
-    QList<Nodeptr>& patterns = rootPattern->patterns;
+    QList<Childptr>& patterns = rootPattern->patterns;
 
-    QMutableListIterator<Nodeptr> iter(patterns);
+    QMutableListIterator<Childptr> iter(patterns);
     iter.toBack();
     while (iter.hasPrevious()) {
-        Nodeptr& pattern = iter.previous();
+        Nodeptr pattern = iter.previous();
         if (pattern->include != QString()) {
             if (this->repository.contains(pattern->include)) {
-                iter.setValue(this->repository.value(pattern->include));
+                pattern = this->repository.value(pattern->include);
+                iter.setValue(pattern);
             } else {
                 qWarning() << "Pattern not in repository" << pattern->include;
             }
         }
         if (pattern->match.empty() && pattern->begin.empty()) {
-            QList<Nodeptr> childPatterns = pattern->patterns;
+            QList<Childptr> childPatterns = pattern->patterns;
             iter.remove();
             foreach (Nodeptr childPattern, childPatterns) {
                 iter.insert(childPattern);
