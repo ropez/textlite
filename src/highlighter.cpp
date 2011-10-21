@@ -19,6 +19,7 @@ typedef QExplicitlySharedDataPointer<Node> Nodeptr;
 
 struct Node : public QSharedData {
     QString name;
+    QString contentName;
     QString include;
     boost::wregex begin;
     boost::wregex end;
@@ -28,6 +29,7 @@ struct Node : public QSharedData {
     QMap<int, Nodeptr> endCaptures;
     QList<Nodeptr> patterns;
     QTextCharFormat format;
+    QTextCharFormat contentFormat;
 };
 }
 
@@ -79,6 +81,7 @@ Nodeptr HighlighterPrivate::makePattern(const QVariantMap& patternData, const QT
 {
     Nodeptr node(new Node);
     node->name = patternData.value("name").toString();
+    node->contentName = patternData.value("contentName").toString();
     node->include = patternData.value("include").toString();
     if (patternData.contains("begin"))
         node->begin.set_expression(patternData.value("begin").toString().toStdWString());
@@ -92,6 +95,7 @@ Nodeptr HighlighterPrivate::makePattern(const QVariantMap& patternData, const QT
     }
 
     node->format = makeFormat(node->name, baseFormat);
+    node->contentFormat = makeFormat(node->contentName, node->format);
 
     QVariant capturesData = patternData.value("captures");
     node->captures = makeCaptures(capturesData.toMap(), node->format);
@@ -307,7 +311,7 @@ void Highlighter::highlightBlock(const QString &text)
 
         // Highlight skipped section
         if (foundPos != offset) {
-            setFormat(offset, foundPos, context->format);
+            setFormat(offset, foundPos - offset, context->contentFormat);
         }
 
         // Did we find anything to highlight?
