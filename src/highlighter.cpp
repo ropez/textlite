@@ -251,7 +251,7 @@ void Highlighter::highlightBlock(const QString &text)
     const pos_t end = _text.end();
 
     pos_t index = base;
-    while (index != end) {
+    while (true) {
         Q_ASSERT(contextStack.size() > 0);
         Nodeptr context = contextStack.top();
 
@@ -267,7 +267,7 @@ void Highlighter::highlightBlock(const QString &text)
             boost::wsmatch match;
             if (boost::regex_search(index, end, match, pattern->end, flags, base)) {
                 diff_t pos = offset + match.position();
-                if (pos < foundPos) {
+                if (foundMatch.empty() || pos < foundPos) {
                     foundPos = pos;
                     foundPattern = pattern;
                     foundMatchType = End;
@@ -281,7 +281,7 @@ void Highlighter::highlightBlock(const QString &text)
                 boost::wsmatch match;
                 if (boost::regex_search(index, end, match, pattern->begin, flags, base)) {
                     diff_t pos = offset + match.position();
-                    if (pos < foundPos) {
+                    if (foundMatch.empty() || pos < foundPos) {
                         foundPos = pos;
                         foundPattern = pattern;
                         foundMatchType = Begin;
@@ -292,7 +292,7 @@ void Highlighter::highlightBlock(const QString &text)
                 boost::wsmatch match;
                 if (boost::regex_search(index, end, match, pattern->match, flags, base)) {
                     diff_t pos = offset + match.position();
-                    if (pos < foundPos) {
+                    if (foundMatch.empty() || pos < foundPos) {
                         foundPos = pos;
                         foundPattern = pattern;
                         foundMatchType = Normal;
@@ -314,7 +314,7 @@ void Highlighter::highlightBlock(const QString &text)
         if (foundMatch.empty())
             break;
 
-        Q_ASSERT(base + foundPos < end);
+        Q_ASSERT(base + foundPos <= end);
         setFormat(foundPos, foundMatch.length(), foundPattern->format);
 
         QMap<int, Nodeptr> captures;
@@ -358,8 +358,7 @@ void Highlighter::highlightBlock(const QString &text)
             Q_ASSERT(index != -1);
             state *= range;
             state += (index + 1);
-            Q_ASSERT(state < 1UL << 31);
-            qDebug() << state;
+            Q_ASSERT(state < 1L << 31);
         }
         setCurrentBlockState(static_cast<int>(state));
     }
