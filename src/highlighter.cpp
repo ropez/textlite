@@ -15,9 +15,9 @@
 
 namespace {
 struct Node;
-typedef QExplicitlySharedDataPointer<Node> Nodeptr;
+typedef QSharedPointer<Node> Nodeptr;
 
-struct Node : public QSharedData {
+struct Node {
     QString name;
     QString contentName;
     QString include;
