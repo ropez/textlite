@@ -19,6 +19,9 @@ typedef QSharedPointer<Node> Nodeptr;
 typedef QWeakPointer<Node> Childptr;
 
 struct Node {
+    bool visited;
+    Node() : visited(false) {}
+
     QString name;
     QString contentName;
     QString include;
@@ -130,6 +133,9 @@ QList<Childptr> HighlighterPrivate::makePatternList(const QVariantList& patternL
 
 void HighlighterPrivate::resolveChildPatterns(Nodeptr rootPattern)
 {
+    if (rootPattern->visited) return;
+    rootPattern->visited = true;
+
     QList<Childptr>& patterns = rootPattern->patterns;
 
     QMutableListIterator<Childptr> iter(patterns);
@@ -137,11 +143,19 @@ void HighlighterPrivate::resolveChildPatterns(Nodeptr rootPattern)
     while (iter.hasPrevious()) {
         Nodeptr pattern = iter.previous();
         if (pattern->include != QString()) {
-            if (this->repository.contains(pattern->include)) {
+            if (pattern->include == "$self") {
+                QList<Childptr> childPatterns = this->rootPattern->patterns;
+                iter.remove();
+                foreach (Nodeptr childPattern, childPatterns) {
+                    iter.insert(childPattern);
+                }
+                continue;
+            } else if (this->repository.contains(pattern->include)) {
                 pattern = this->repository.value(pattern->include);
                 iter.setValue(pattern);
             } else {
                 qWarning() << "Pattern not in repository" << pattern->include;
+                iter.remove();
             }
         }
         if (pattern->match.empty() && pattern->begin.empty()) {
