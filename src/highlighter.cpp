@@ -381,7 +381,7 @@ void Highlighter::highlightBlock(const QString &text)
             Q_ASSERT(index != -1);
             state *= range;
             state += (index + 1);
-            Q_ASSERT(state < 1L << 31);
+            Q_ASSERT(state < 1LL << 31);
         }
         setCurrentBlockState(static_cast<int>(state));
     }
