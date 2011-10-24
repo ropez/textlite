@@ -2,6 +2,9 @@
 #define EDITOR_H
 
 #include <QTextEdit>
+#include <QMap>
+
+class QTextDocument;
 
 class Editor : public QTextEdit
 {
@@ -15,6 +18,7 @@ public slots:
 
 private:
     QString filename;
+    QMap<QString, QTextDocument*> documents;
 };
 
 #endif // EDITOR_H

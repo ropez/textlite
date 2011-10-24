@@ -14,17 +14,25 @@ Editor::Editor(QWidget *parent) :
 
 void Editor::setFileName(const QString &name)
 {
-    QFile file(name);
-
-    if (!file.open(QFile::ReadOnly)) {
-        qWarning("File not found");
-        return;
-    }
     this->filename.clear();
-    setPlainText(file.readAll());
+
+    if (documents.contains(name)) {
+        setDocument(documents.value(name));
+    } else {
+        setDocument(new QTextDocument(this));
+        documents.insert(name, document());
+
+        QFile file(name);
+        if (file.open(QFile::ReadOnly)) {
+            document()->setPlainText(file.readAll());
+        } else {
+            qWarning("File not found");
+        }
+    }
+
+    this->filename = name;
     setReadOnly(false);
     setFocus();
-    this->filename = name;
 }
 
 void Editor::saveFile()
