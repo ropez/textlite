@@ -3,8 +3,11 @@
 
 #include <QWidget>
 #include <QMap>
+#include <QQueue>
 
 class QTextDocument;
+class QFileSystemWatcher;
+class QTimer;
 
 class Navigator;
 class Editor;
@@ -19,6 +22,9 @@ public:
 private slots:
     void setFileName(const QString& name);
     void saveFile();
+    void readFile(const QString& name);
+    void readFileLater(const QString& name);
+    void readPendingFiles();
 
 private:
     Navigator* navigator;
@@ -27,6 +33,10 @@ private:
 
     QString filename;
     QMap<QString, QTextDocument*> documents;
+
+    QFileSystemWatcher* watcher;
+    QTimer* reloadTimer;
+    QQueue<QString> reloadNames;
 };
 
 #endif // WINDOW_H
