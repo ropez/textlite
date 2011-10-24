@@ -16,6 +16,9 @@ Window::Window(QWidget *parent) :
     vl->addWidget(navigator);
     vl->addWidget(editor);
 
+    editor->setReadOnly(true);
+    editor->setWordWrapMode(QTextOption::NoWrap);
+
     bundleManager = new BundleManager(this);
     bundleManager->readBundles("redcar-bundles/Bundles");
 
@@ -37,6 +40,10 @@ void Window::setFileName(const QString &name)
     } else {
         editor->setDocument(new QTextDocument(this));
         documents.insert(name, editor->document());
+
+        QFont font;
+        font.setFamily("DejaVu Sans Mono");
+        editor->document()->setDefaultFont(font);
 
         QFile file(name);
         if (file.open(QFile::ReadOnly)) {
