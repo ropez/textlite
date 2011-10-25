@@ -14,13 +14,13 @@
 #include <boost/regex.hpp>
 
 namespace {
-struct Node;
-typedef QSharedPointer<Node> Nodeptr;
-typedef QWeakPointer<Node> Childptr;
+struct RuleData;
+typedef QSharedPointer<RuleData> RulePtr;
+typedef QWeakPointer<RuleData> WeakRulePtr;
 
-struct Node {
+struct RuleData {
     bool visited;
-    Node() : visited(false) {}
+    RuleData() : visited(false) {}
 
     QString name;
     QString contentName;
@@ -28,10 +28,10 @@ struct Node {
     boost::wregex begin;
     boost::wregex end;
     boost::wregex match;
-    QMap<int, Nodeptr> captures;
-    QMap<int, Nodeptr> beginCaptures;
-    QMap<int, Nodeptr> endCaptures;
-    QList<Childptr> patterns;
+    QMap<int, RulePtr> captures;
+    QMap<int, RulePtr> beginCaptures;
+    QMap<int, RulePtr> endCaptures;
+    QList<WeakRulePtr> patterns;
     QTextCharFormat format;
     QTextCharFormat contentFormat;
 };
@@ -41,18 +41,18 @@ class HighlighterPrivate
 {
     friend class Highlighter;
 
-    Nodeptr rootPattern;
+    RulePtr root;
 
-    QList<Nodeptr> all;
-    QMap<QString, Nodeptr> repository;
+    QList<RulePtr> all;
+    QMap<QString, RulePtr> repository;
 
     QMap<QString, QTextCharFormat> theme;
 
     QTextCharFormat makeFormat(const QString& name, const QTextCharFormat& baseFormat = QTextCharFormat());
-    QMap<int, Nodeptr> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
-    Nodeptr makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat = QTextCharFormat());
-    QList<Childptr> makePatternList(const QVariantList& patternListData);
-    void resolveChildPatterns(Nodeptr rootPattern);
+    QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
+    RulePtr makeRule(const QVariantMap& ruleData, const QTextCharFormat& baseFormat = QTextCharFormat());
+    QList<WeakRulePtr> makeRuleList(const QVariantList& ruleListData);
+    void resolveChildRules(RulePtr parentRule);
 };
 
 QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextCharFormat& baseFormat)
@@ -69,103 +69,101 @@ QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextC
     return format;
 }
 
-QMap<int, Nodeptr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat)
+QMap<int, RulePtr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat)
 {
-    QMap<int, Nodeptr> captures;
+    QMap<int, RulePtr> captures;
     QMapIterator<QString, QVariant> iter(capturesData);
     while (iter.hasNext()) {
         iter.next();
         int num = iter.key().toInt();
         QVariantMap data = iter.value().toMap();
-        captures[num] = makePattern(data, baseFormat);
+        captures[num] = makeRule(data, baseFormat);
     }
     return captures;
 }
 
-Nodeptr HighlighterPrivate::makePattern(const QVariantMap& patternData, const QTextCharFormat& baseFormat)
+RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData, const QTextCharFormat& baseFormat)
 {
-    Nodeptr node(new Node);
-    this->all.append(node);
+    RulePtr rule(new RuleData);
+    this->all.append(rule);
 
-    node->name = patternData.value("name").toString();
-    node->contentName = patternData.value("contentName").toString();
-    node->include = patternData.value("include").toString();
-    if (patternData.contains("begin"))
-        node->begin.set_expression(patternData.value("begin").toString().toStdWString());
-    if (patternData.contains("end"))
-        node->end.set_expression(patternData.value("end").toString().toStdWString());
-    if (patternData.contains("match"))
-        node->match.set_expression(patternData.value("match").toString().toStdWString());
-    QVariant patternListData = patternData.value("patterns");
-    if (patternListData.isValid()) {
-        node->patterns = makePatternList(patternListData.toList());
+    rule->name = ruleData.value("name").toString();
+    rule->contentName = ruleData.value("contentName").toString();
+    rule->include = ruleData.value("include").toString();
+    if (ruleData.contains("begin"))
+        rule->begin.set_expression(ruleData.value("begin").toString().toStdWString());
+    if (ruleData.contains("end"))
+        rule->end.set_expression(ruleData.value("end").toString().toStdWString());
+    if (ruleData.contains("match"))
+        rule->match.set_expression(ruleData.value("match").toString().toStdWString());
+    QVariant ruleListData = ruleData.value("patterns");
+    if (ruleListData.isValid()) {
+        rule->patterns = makeRuleList(ruleListData.toList());
     }
 
-    node->format = makeFormat(node->name, baseFormat);
-    node->contentFormat = makeFormat(node->contentName, node->format);
+    rule->format = makeFormat(rule->name, baseFormat);
+    rule->contentFormat = makeFormat(rule->contentName, rule->format);
 
-    QVariant capturesData = patternData.value("captures");
-    node->captures = makeCaptures(capturesData.toMap(), node->format);
-    QVariant beginCapturesData = patternData.value("beginCaptures");
+    QVariant capturesData = ruleData.value("captures");
+    rule->captures = makeCaptures(capturesData.toMap(), rule->format);
+    QVariant beginCapturesData = ruleData.value("beginCaptures");
     if (beginCapturesData.isValid())
-        node->beginCaptures = makeCaptures(beginCapturesData.toMap(), node->format);
+        rule->beginCaptures = makeCaptures(beginCapturesData.toMap(), rule->format);
     else
-        node->beginCaptures = node->captures;
-    QVariant endCapturesData = patternData.value("endCaptures");
+        rule->beginCaptures = rule->captures;
+    QVariant endCapturesData = ruleData.value("endCaptures");
     if (endCapturesData.isValid())
-        node->endCaptures = makeCaptures(endCapturesData.toMap(), node->format);
+        rule->endCaptures = makeCaptures(endCapturesData.toMap(), rule->format);
     else
-        node->endCaptures = node->captures;
+        rule->endCaptures = rule->captures;
 
-    return node;
+    return rule;
 }
 
-QList<Childptr> HighlighterPrivate::makePatternList(const QVariantList& patternListData)
+QList<WeakRulePtr> HighlighterPrivate::makeRuleList(const QVariantList& ruleListData)
 {
-    QList<Childptr> patterns;
-    QListIterator<QVariant> iter(patternListData);
+    QList<WeakRulePtr> rules;
+    QListIterator<QVariant> iter(ruleListData);
     while (iter.hasNext()) {
-        QVariantMap patternData = iter.next().toMap();
-        patterns << makePattern(patternData, theme.value(""));
+        QVariantMap ruleData = iter.next().toMap();
+        rules << makeRule(ruleData, theme.value(""));
     }
-    return patterns;
+    return rules;
 }
 
-void HighlighterPrivate::resolveChildPatterns(Nodeptr rootPattern)
+void HighlighterPrivate::resolveChildRules(RulePtr parentRule)
 {
-    if (rootPattern->visited) return;
-    rootPattern->visited = true;
+    if (parentRule->visited) return;
+    parentRule->visited = true;
 
-    QList<Childptr>& patterns = rootPattern->patterns;
-
-    QMutableListIterator<Childptr> iter(patterns);
+    QMutableListIterator<WeakRulePtr> iter(parentRule->patterns);
     iter.toBack();
     while (iter.hasPrevious()) {
-        Nodeptr pattern = iter.previous();
-        if (pattern->include != QString()) {
-            if (pattern->include == "$self") {
-                QList<Childptr> childPatterns = this->rootPattern->patterns;
+        RulePtr rule = iter.previous();
+        if (rule->include != QString()) {
+            if (rule->include == "$self") {
+                QList<WeakRulePtr> childPatterns = this->root->patterns;
                 iter.remove();
-                foreach (Nodeptr childPattern, childPatterns) {
+                foreach (RulePtr childPattern, childPatterns) {
                     iter.insert(childPattern);
                 }
                 continue;
-            } else if (this->repository.contains(pattern->include)) {
-                pattern = this->repository.value(pattern->include);
-                iter.setValue(pattern);
+            } else if (this->repository.contains(rule->include)) {
+                rule = this->repository.value(rule->include);
+                iter.setValue(rule);
             } else {
-                qWarning() << "Pattern not in repository" << pattern->include;
+                qWarning() << "Pattern not in repository" << rule->include;
                 iter.remove();
             }
         }
-        if (pattern->match.empty() && pattern->begin.empty()) {
-            QList<Childptr> childPatterns = pattern->patterns;
+        if (rule->match.empty() && rule->begin.empty()) {
+            QList<WeakRulePtr> childPatterns = rule->patterns;
             iter.remove();
-            foreach (Nodeptr childPattern, childPatterns) {
+            foreach (RulePtr childPattern, childPatterns) {
                 iter.insert(childPattern);
             }
         } else {
-            resolveChildPatterns(pattern);
+            resolveChildRules(rule);
         }
     }
 }
@@ -232,25 +230,25 @@ void Highlighter::readSyntaxFile(const QString& syntaxFile)
     QMapIterator<QString, QVariant> iter(repositoryData);
     while (iter.hasNext()) {
         iter.next();
-        QVariantMap patternData = iter.value().toMap();
-        d->repository["#" + iter.key()] = d->makePattern(patternData);
+        QVariantMap ruleData = iter.value().toMap();
+        d->repository["#" + iter.key()] = d->makeRule(ruleData);
     }
 
-    QVariantMap rootPatternData;
-    rootPatternData["patterns"] = def.value("patterns");
-    d->rootPattern = d->makePattern(rootPatternData);
-    d->resolveChildPatterns(d->rootPattern);
+    QVariantMap rootData;
+    rootData["patterns"] = def.value("patterns");
+    d->root = d->makeRule(rootData);
+    d->resolveChildRules(d->root);
 }
 
 void Highlighter::highlightBlock(const QString &text)
 {
     enum MatchType { Normal, Begin, End };
 
-    if (!d->rootPattern)
+    if (!d->root)
         return;
 
-    QStack<Nodeptr> contextStack;
-    contextStack.push(d->rootPattern);
+    QStack<RulePtr> contextStack;
+    contextStack.push(d->root);
 
     // restore encoded state
     {
@@ -276,48 +274,48 @@ void Highlighter::highlightBlock(const QString &text)
     pos_t index = base;
     while (true) {
         Q_ASSERT(contextStack.size() > 0);
-        Nodeptr context = contextStack.top();
+        RulePtr context = contextStack.top();
 
         const diff_t offset = index - base;
         diff_t foundPos = _text.length();
 
-        Nodeptr foundPattern;
+        RulePtr foundRule;
         MatchType foundMatchType = Normal;
         boost::wsmatch foundMatch;
 
         if (!context->end.empty()) {
-            Nodeptr pattern = context;
+            RulePtr rule = context;
             boost::wsmatch match;
-            if (boost::regex_search(index, end, match, pattern->end, flags, base)) {
+            if (boost::regex_search(index, end, match, rule->end, flags, base)) {
                 diff_t pos = offset + match.position();
                 if (foundMatch.empty() || pos < foundPos) {
                     foundPos = pos;
-                    foundPattern = pattern;
+                    foundRule = rule;
                     foundMatchType = End;
                     foundMatch.swap(match);
                 }
             }
         }
 
-        foreach (Nodeptr pattern, context->patterns) {
-            if (!pattern->begin.empty()) {
+        foreach (RulePtr rule, context->patterns) {
+            if (!rule->begin.empty()) {
                 boost::wsmatch match;
-                if (boost::regex_search(index, end, match, pattern->begin, flags, base)) {
+                if (boost::regex_search(index, end, match, rule->begin, flags, base)) {
                     diff_t pos = offset + match.position();
                     if (foundMatch.empty() || pos < foundPos) {
                         foundPos = pos;
-                        foundPattern = pattern;
+                        foundRule = rule;
                         foundMatchType = Begin;
                         foundMatch.swap(match);
                     }
                 }
-            } else if (!pattern->match.empty()) {
+            } else if (!rule->match.empty()) {
                 boost::wsmatch match;
-                if (boost::regex_search(index, end, match, pattern->match, flags, base)) {
+                if (boost::regex_search(index, end, match, rule->match, flags, base)) {
                     diff_t pos = offset + match.position();
                     if (foundMatch.empty() || pos < foundPos) {
                         foundPos = pos;
-                        foundPattern = pattern;
+                        foundRule = rule;
                         foundMatchType = Normal;
                         foundMatch.swap(match);
                     }
@@ -338,20 +336,20 @@ void Highlighter::highlightBlock(const QString &text)
             break;
 
         Q_ASSERT(base + foundPos <= end);
-        setFormat(foundPos, foundMatch.length(), foundPattern->format);
+        setFormat(foundPos, foundMatch.length(), foundRule->format);
 
-        QMap<int, Nodeptr> captures;
+        QMap<int, RulePtr> captures;
 
         switch (foundMatchType) {
         case Normal:
-            captures = foundPattern->captures;
+            captures = foundRule->captures;
             break;
         case Begin:
-            captures = foundPattern->beginCaptures;
-            contextStack.push(foundPattern);
+            captures = foundRule->beginCaptures;
+            contextStack.push(foundRule);
             break;
         case End:
-            captures = foundPattern->endCaptures;
+            captures = foundRule->endCaptures;
             contextStack.pop();
             break;
         }
@@ -375,7 +373,7 @@ void Highlighter::highlightBlock(const QString &text)
     {
         qint64 state = 0;
         while (contextStack.size() > 1) {
-            Nodeptr context = contextStack.pop();
+            RulePtr context = contextStack.pop();
             int range = contextStack.top()->patterns.size() + 1;
             int index = contextStack.top()->patterns.indexOf(context);
             Q_ASSERT(index != -1);
