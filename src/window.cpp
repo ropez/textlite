@@ -93,7 +93,7 @@ void Window::readFile(const QString& name)
 
         QFile file(name);
         if (file.open(QFile::ReadOnly)) {
-            doc->setPlainText(file.readAll());
+            doc->setPlainText(QString::fromUtf8(file.readAll()));
         } else {
             qWarning() << "File not found:" << name;
         }
