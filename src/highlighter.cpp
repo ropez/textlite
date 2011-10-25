@@ -29,7 +29,6 @@ struct RuleData {
     std::wstring endPattern;
     std::wstring matchPattern;
     boost::wregex begin;
-    boost::wregex end;
     boost::wregex match;
     QMap<int, RulePtr> captures;
     QMap<int, RulePtr> beginCaptures;
@@ -38,6 +37,71 @@ struct RuleData {
     QTextCharFormat format;
     QTextCharFormat contentFormat;
 };
+
+struct ContextItem {
+    explicit ContextItem(RulePtr p = RulePtr()) : rule(p) {}
+
+    RulePtr rule;
+    std::wstring formattedEndPattern;
+    boost::wregex end;
+};
+
+void _HashCombine(int& h, int hh) {
+    h = (h << 4) ^ (h >> 28) ^ hh;
+}
+
+int _Hash(const std::wstring& str) {
+    int h = 0;
+    for (std::wstring::const_iterator it = str.begin(); it != str.end(); ++it) {
+        _HashCombine(h, static_cast<int>(*it));
+    }
+    return h;
+}
+
+int _Hash(const boost::wregex& regex) {
+    if (regex.empty())
+        return 0;
+    else
+        return _Hash(regex.expression());
+}
+
+int _Hash(const ContextItem& item) {
+    int h = 0;
+    _HashCombine(h, _Hash(item.rule->begin));
+    _HashCombine(h, _Hash(item.end));
+    return h;
+}
+
+int _Hash(const QStack<ContextItem>& stack) {
+    int h = 0;
+    foreach (const ContextItem& item, stack) {
+        _HashCombine(h, _Hash(item));
+    }
+    return h;
+}
+
+struct Context : public QTextBlockUserData {
+    QStack<ContextItem> stack;
+};
+
+void replace(std::wstring& str, const std::wstring& from, const std::wstring& to) {
+    size_t pos = 0;
+    while((pos = str.find(from, pos)) != std::wstring::npos) {
+        str.replace(pos, from.length(), to);
+        pos += to.length();
+    }
+}
+
+std::wstring formatEndPattern(const std::wstring& fmt, const boost::wsmatch& beginMatch) {
+    static const std::wstring FROM[] = { L"\\0", L"\\1", L"\\2", L"\\3", L"\\4",
+                                         L"\\5", L"\\6", L"\\7", L"\\8", L"\\9" };
+    size_t size = std::min(beginMatch.size(), 10UL);
+    std::wstring result = fmt;
+    for (size_t i = 0; i < size; i++) {
+        replace(result, FROM[i], beginMatch[i]);
+    }
+    return result;
+}
 }
 
 class HighlighterPrivate
@@ -255,21 +319,14 @@ void Highlighter::highlightBlock(const QString &text)
     if (!d->root)
         return;
 
-    QStack<RulePtr> contextStack;
-    contextStack.push(d->root);
-
-    // restore encoded state
-    {
-        int state = previousBlockState();
-        while (state > 0) {
-            int range = contextStack.top()->patterns.size() + 1;
-            div_t div = std::div(state, range);
-            int index = div.rem - 1;
-            contextStack.push(contextStack.top()->patterns[index]);
-            state = div.quot;
-        }
+    QStack<ContextItem> contextStack;
+    if (previousBlockState() != -1) {
+        QTextBlock prevBlock = currentBlock().previous();
+        Context* ctx = static_cast<Context*>(prevBlock.userData());
+        contextStack = ctx->stack;
+    } else {
+        contextStack.push(ContextItem(d->root));
     }
-
 
     typedef std::wstring::const_iterator pos_t;
     typedef std::wstring::difference_type diff_t;
@@ -282,7 +339,7 @@ void Highlighter::highlightBlock(const QString &text)
     pos_t index = base;
     while (true) {
         Q_ASSERT(contextStack.size() > 0);
-        RulePtr context = contextStack.top();
+        ContextItem context = contextStack.top();
 
         const diff_t offset = index - base;
         diff_t foundPos = _text.length();
@@ -291,10 +348,10 @@ void Highlighter::highlightBlock(const QString &text)
         MatchType foundMatchType = Normal;
         boost::wsmatch foundMatch;
 
-        if (!context->end.empty()) {
-            RulePtr rule = context;
+        if (!context.end.empty()) {
+            RulePtr rule = context.rule;
             boost::wsmatch match;
-            if (boost::regex_search(index, end, match, rule->end, flags, base)) {
+            if (boost::regex_search(index, end, match, context.end, flags, base)) {
                 diff_t pos = offset + match.position();
                 if (foundMatch.empty() || pos < foundPos) {
                     foundPos = pos;
@@ -305,7 +362,7 @@ void Highlighter::highlightBlock(const QString &text)
             }
         }
 
-        foreach (RulePtr rule, context->patterns) {
+        foreach (RulePtr rule, context.rule->patterns) {
             if (!rule->begin.empty()) {
                 boost::wsmatch match;
                 if (boost::regex_search(index, end, match, rule->begin, flags, base)) {
@@ -336,7 +393,7 @@ void Highlighter::highlightBlock(const QString &text)
 
         // Highlight skipped section
         if (foundPos != offset) {
-            setFormat(offset, foundPos - offset, context->contentFormat);
+            setFormat(offset, foundPos - offset, context.rule->contentFormat);
         }
 
         // Did we find anything to highlight?
@@ -353,12 +410,16 @@ void Highlighter::highlightBlock(const QString &text)
             captures = foundRule->captures;
             break;
         case Begin:
+        {
             captures = foundRule->beginCaptures;
-            contextStack.push(foundRule);
             // Compile the regular expression that will end this context,
             // and may include captures from the found match
-            foundRule->end.set_expression(foundMatch.format(foundRule->endPattern));
+            ContextItem item(foundRule);
+            item.formattedEndPattern = formatEndPattern(foundRule->endPattern, foundMatch);
+            item.end.set_expression(item.formattedEndPattern);
+            contextStack.push(item);
             break;
+        }
         case End:
             captures = foundRule->endCaptures;
             contextStack.pop();
@@ -380,18 +441,13 @@ void Highlighter::highlightBlock(const QString &text)
         index = base + foundPos + foundMatch.length();
     }
 
-    // encode and save state
-    {
-        qint64 state = 0;
-        while (contextStack.size() > 1) {
-            RulePtr context = contextStack.pop();
-            int range = contextStack.top()->patterns.size() + 1;
-            int index = contextStack.top()->patterns.indexOf(context);
-            Q_ASSERT(index != -1);
-            state *= range;
-            state += (index + 1);
-            Q_ASSERT(state < 1LL << 31);
-        }
-        setCurrentBlockState(static_cast<int>(state));
+    if (contextStack.size() > 1) {
+        Context* ctx = new Context;
+        ctx->stack = contextStack;
+        setCurrentBlockUserData(ctx);
+        setCurrentBlockState(_Hash(ctx->stack));
+    } else {
+        setCurrentBlockUserData(0);
+        setCurrentBlockState(-1);
     }
 }
