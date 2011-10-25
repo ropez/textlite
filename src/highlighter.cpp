@@ -25,6 +25,9 @@ struct RuleData {
     QString name;
     QString contentName;
     QString include;
+    std::wstring beginPattern;
+    std::wstring endPattern;
+    std::wstring matchPattern;
     boost::wregex begin;
     boost::wregex end;
     boost::wregex match;
@@ -90,12 +93,17 @@ RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData, const QTextCha
     rule->name = ruleData.value("name").toString();
     rule->contentName = ruleData.value("contentName").toString();
     rule->include = ruleData.value("include").toString();
-    if (ruleData.contains("begin"))
-        rule->begin.set_expression(ruleData.value("begin").toString().toStdWString());
-    if (ruleData.contains("end"))
-        rule->end.set_expression(ruleData.value("end").toString().toStdWString());
-    if (ruleData.contains("match"))
-        rule->match.set_expression(ruleData.value("match").toString().toStdWString());
+    if (ruleData.contains("begin")) {
+        rule->beginPattern = ruleData.value("begin").toString().toStdWString();
+        rule->begin.set_expression(rule->beginPattern);
+    }
+    if (ruleData.contains("end")) {
+        rule->endPattern = ruleData.value("end").toString().toStdWString();
+    }
+    if (ruleData.contains("match")) {
+        rule->matchPattern = ruleData.value("match").toString().toStdWString();
+        rule->match.set_expression(rule->matchPattern);
+    }
     QVariant ruleListData = ruleData.value("patterns");
     if (ruleListData.isValid()) {
         rule->patterns = makeRuleList(ruleListData.toList());
@@ -347,6 +355,9 @@ void Highlighter::highlightBlock(const QString &text)
         case Begin:
             captures = foundRule->beginCaptures;
             contextStack.push(foundRule);
+            // Compile the regular expression that will end this context,
+            // and may include captures from the found match
+            foundRule->end.set_expression(foundMatch.format(foundRule->endPattern));
             break;
         case End:
             captures = foundRule->endCaptures;
