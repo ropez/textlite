@@ -125,7 +125,7 @@ class HighlighterPrivate
     QList<WeakRulePtr> makeRuleList(const QVariantList& ruleListData);
     void resolveChildRules(RulePtr parentRule);
 
-    void searchPatterns(const RulePtr& parentRule, const iter_t begin, const iter_t end, const iter_t base,
+    void searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
                         diff_t& foundPos, RulePtr& foundRule, MatchType& foundMatchType, boost::wsmatch& foundMatch);
 };
 
@@ -221,12 +221,8 @@ void HighlighterPrivate::resolveChildRules(RulePtr parentRule)
         RulePtr rule = iter.previous();
         if (rule->include != QString()) {
             if (rule->include == "$self") {
-                QList<WeakRulePtr> childPatterns = this->root->patterns;
-                iter.remove();
-                foreach (RulePtr childPattern, childPatterns) {
-                    iter.insert(childPattern);
-                }
-                continue;
+                rule = this->root;
+                iter.setValue(rule);
             } else if (this->repository.contains(rule->include)) {
                 rule = this->repository.value(rule->include);
                 iter.setValue(rule);
@@ -235,15 +231,7 @@ void HighlighterPrivate::resolveChildRules(RulePtr parentRule)
                 iter.remove();
             }
         }
-        if (rule->match.empty() && rule->begin.empty()) {
-            QList<WeakRulePtr> childPatterns = rule->patterns;
-            iter.remove();
-            foreach (RulePtr childPattern, childPatterns) {
-                iter.insert(childPattern);
-            }
-        } else {
-            resolveChildRules(rule);
-        }
+        resolveChildRules(rule);
     }
 }
 
@@ -348,6 +336,8 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
                     foundMatch.swap(match);
                 }
             }
+        } else {
+            searchPatterns(rule, index, end, base, foundPos, foundRule, foundMatchType, foundMatch);
         }
         Q_ASSERT(foundPos >= offset);
         if (foundPos == offset)
