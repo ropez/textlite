@@ -14,6 +14,7 @@
 #include <boost/regex.hpp>
 
 namespace {
+enum MatchType { Normal, Begin, End };
 typedef std::wstring::const_iterator iter_t;
 typedef std::wstring::difference_type diff_t;
 
@@ -123,6 +124,9 @@ class HighlighterPrivate
     RulePtr makeRule(const QVariantMap& ruleData, const QTextCharFormat& baseFormat = QTextCharFormat());
     QList<WeakRulePtr> makeRuleList(const QVariantList& ruleListData);
     void resolveChildRules(RulePtr parentRule);
+
+    void searchPatterns(const RulePtr& parentRule, const iter_t begin, const iter_t end, const iter_t base,
+                        diff_t& foundPos, RulePtr& foundRule, MatchType& foundMatchType, boost::wsmatch& foundMatch);
 };
 
 QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextCharFormat& baseFormat)
@@ -315,10 +319,44 @@ void Highlighter::readSyntaxFile(const QString& syntaxFile)
     d->resolveChildRules(d->root);
 }
 
+void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
+                                        diff_t& foundPos, RulePtr& foundRule, MatchType& foundMatchType, boost::wsmatch& foundMatch)
+{
+    const boost::match_flag_type flags = boost::match_default;
+    const diff_t offset = index - base;
+
+    foreach (RulePtr rule, parentRule->patterns) {
+        if (!rule->begin.empty()) {
+            boost::wsmatch match;
+            if (boost::regex_search(index, end, match, rule->begin, flags, base)) {
+                diff_t pos = offset + match.position();
+                if (foundMatch.empty() || pos < foundPos) {
+                    foundPos = pos;
+                    foundRule = rule;
+                    foundMatchType = Begin;
+                    foundMatch.swap(match);
+                }
+            }
+        } else if (!rule->match.empty()) {
+            boost::wsmatch match;
+            if (boost::regex_search(index, end, match, rule->match, flags, base)) {
+                diff_t pos = offset + match.position();
+                if (foundMatch.empty() || pos < foundPos) {
+                    foundPos = pos;
+                    foundRule = rule;
+                    foundMatchType = Normal;
+                    foundMatch.swap(match);
+                }
+            }
+        }
+        Q_ASSERT(foundPos >= offset);
+        if (foundPos == offset)
+            break; // Don't need to continue
+    }
+}
+
 void Highlighter::highlightBlock(const QString &text)
 {
-    enum MatchType { Normal, Begin, End };
-
     if (!d->root)
         return;
 
@@ -362,34 +400,7 @@ void Highlighter::highlightBlock(const QString &text)
             }
         }
 
-        foreach (RulePtr rule, context.rule->patterns) {
-            if (!rule->begin.empty()) {
-                boost::wsmatch match;
-                if (boost::regex_search(index, end, match, rule->begin, flags, base)) {
-                    diff_t pos = offset + match.position();
-                    if (foundMatch.empty() || pos < foundPos) {
-                        foundPos = pos;
-                        foundRule = rule;
-                        foundMatchType = Begin;
-                        foundMatch.swap(match);
-                    }
-                }
-            } else if (!rule->match.empty()) {
-                boost::wsmatch match;
-                if (boost::regex_search(index, end, match, rule->match, flags, base)) {
-                    diff_t pos = offset + match.position();
-                    if (foundMatch.empty() || pos < foundPos) {
-                        foundPos = pos;
-                        foundRule = rule;
-                        foundMatchType = Normal;
-                        foundMatch.swap(match);
-                    }
-                }
-            }
-            Q_ASSERT(foundPos >= offset);
-            if (foundPos == offset)
-                break; // Don't need to continue
-        }
+        d->searchPatterns(context.rule, index, end, base, foundPos, foundRule, foundMatchType, foundMatch);
 
         // Highlight skipped section
         if (foundPos != offset) {
