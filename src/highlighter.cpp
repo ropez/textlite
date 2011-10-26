@@ -361,8 +361,8 @@ void Highlighter::highlightBlock(const QString &text)
         return;
 
     QStack<ContextItem> contextStack;
-    if (previousBlockState() != -1) {
-        QTextBlock prevBlock = currentBlock().previous();
+    QTextBlock prevBlock = currentBlock().previous();
+    if (prevBlock.userData()) {
         Context* ctx = static_cast<Context*>(prevBlock.userData());
         contextStack = ctx->stack;
     } else {
