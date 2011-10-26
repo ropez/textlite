@@ -166,14 +166,24 @@ RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData, const QTextCha
     rule->include = ruleData.value("include").toString();
     if (ruleData.contains("begin")) {
         rule->beginPattern = ruleData.value("begin").toString().toStdWString();
-        rule->begin.set_expression(rule->beginPattern);
+        try {
+            rule->begin.assign(rule->beginPattern);
+        } catch (const boost::bad_expression& e) {
+            qWarning() << e.what();
+            qWarning() << QString::fromStdWString(rule->beginPattern);
+        }
     }
     if (ruleData.contains("end")) {
         rule->endPattern = ruleData.value("end").toString().toStdWString();
     }
     if (ruleData.contains("match")) {
         rule->matchPattern = ruleData.value("match").toString().toStdWString();
-        rule->match.set_expression(rule->matchPattern);
+        try {
+           rule->match.assign(rule->matchPattern);
+        } catch (const boost::bad_expression& e) {
+            qWarning() << e.what();
+            qWarning() << QString::fromStdWString(rule->matchPattern);
+        }
     }
     QVariant ruleListData = ruleData.value("patterns");
     if (ruleListData.isValid()) {
@@ -417,7 +427,7 @@ void Highlighter::highlightBlock(const QString &text)
             // and may include captures from the found match
             ContextItem item(foundRule);
             item.formattedEndPattern = formatEndPattern(foundRule->endPattern, foundMatch);
-            item.end.set_expression(item.formattedEndPattern);
+            item.end.assign(item.formattedEndPattern);
             contextStack.push(item);
             break;
         }
