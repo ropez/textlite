@@ -14,6 +14,9 @@
 #include <boost/regex.hpp>
 
 namespace {
+typedef std::wstring::const_iterator iter_t;
+typedef std::wstring::difference_type diff_t;
+
 struct RuleData;
 typedef QSharedPointer<RuleData> RulePtr;
 typedef QWeakPointer<RuleData> WeakRulePtr;
@@ -328,15 +331,12 @@ void Highlighter::highlightBlock(const QString &text)
         contextStack.push(ContextItem(d->root));
     }
 
-    typedef std::wstring::const_iterator pos_t;
-    typedef std::wstring::difference_type diff_t;
-
     const boost::match_flag_type flags = boost::match_default;
     const std::wstring _text = text.toStdWString();
-    const pos_t base = _text.begin();
-    const pos_t end = _text.end();
+    const iter_t base = _text.begin();
+    const iter_t end = _text.end();
 
-    pos_t index = base;
+    iter_t index = base;
     while (true) {
         Q_ASSERT(contextStack.size() > 0);
         ContextItem context = contextStack.top();
