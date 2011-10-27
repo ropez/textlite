@@ -41,7 +41,11 @@ public:
     ~Regex();
 
     bool isValid() const;
+    QString error() const;
+
     QString pattern() const;
+
+    void setPattern(const QString& pattern);
 
     bool search(const QString& target, Match& match);
     bool search(iterator begin, iterator end, Match& match);

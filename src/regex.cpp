@@ -18,14 +18,12 @@ class MatchPrivate
 Match::Match() :
     d_ptr(new MatchPrivate)
 {
-    Q_D(Match);
-    d->region = onig_region_new();
+    d_func()->region = onig_region_new();
 }
 
 Match::~Match()
 {
-    Q_D(Match);
-    onig_region_free(d->region, 1);
+    onig_region_free(d_func()->region, 1);
 }
 
 void Match::swap(Match &other)
@@ -61,6 +59,7 @@ public:
 
     OnigRegex rx;
     QString pattern;
+    QString error;
 };
 
 Regex::Regex() :
@@ -75,9 +74,13 @@ Regex::Regex(const QString& pattern) :
     d->pattern = pattern;
 
     OnigErrorInfo einfo;
-    int r = onig_new(&d->rx, uc(pattern.begin()), uc(pattern.end()), ONIG_OPTION_NONE, ONIG_ENCODING_UTF16_LE, ONIG_SYNTAX_DEFAULT, &einfo);
-
-    Q_ASSERT(r == ONIG_NORMAL);
+    int r = onig_new(&d->rx, uc(pattern.begin()), uc(pattern.end()), ONIG_OPTION_CAPTURE_GROUP, ONIG_ENCODING_UTF16_LE, ONIG_SYNTAX_DEFAULT, &einfo);
+    if (r != ONIG_NORMAL) {
+        Q_ASSERT(d->rx == 0);
+        QByteArray raw(ONIG_MAX_ERROR_MESSAGE_LEN, Qt::Uninitialized);
+        onig_error_code_to_str(reinterpret_cast<OnigUChar*>(raw.data()), r, &einfo);
+        d->error = QString(raw);
+    }
 }
 
 Regex::~Regex()
@@ -89,9 +92,20 @@ bool Regex::isValid() const
     return d_func()->rx != 0;
 }
 
+QString Regex::error() const
+{
+    return d_func()->error;
+}
+
 QString Regex::pattern() const
 {
     return d_func()->pattern;
+}
+
+void Regex::setPattern(const QString& pattern)
+{
+    Regex that(pattern);
+    *this = that;
 }
 
 bool Regex::search(const QString &target, Match &match)
@@ -106,7 +120,6 @@ bool Regex::search(iterator begin, iterator end, Match &match)
 
 bool Regex::search(iterator begin, iterator end, iterator offset, iterator range, Match &match)
 {
-    Q_D(Regex);
-    int r = onig_search(d->rx, uc(begin), uc(end), uc(offset), uc(range), match.d_func()->region, ONIG_OPTION_NONE);
+    int r = onig_search(d_func()->rx, uc(begin), uc(end), uc(offset), uc(range), match.d_func()->region, ONIG_OPTION_NONE);
     return (r != ONIG_MISMATCH);
 }
