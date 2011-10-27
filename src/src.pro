@@ -17,7 +17,8 @@ SOURCES += main.cpp\
     editor.cpp \
     highlighter.cpp \
     plistreader.cpp \
-    bundlemanager.cpp
+    bundlemanager.cpp \
+    regex.cpp
 
 HEADERS  += mainwindow.h \
     navigator.h \
@@ -25,9 +26,12 @@ HEADERS  += mainwindow.h \
     editor.h \
     highlighter.h \
     plistreader.h \
-    bundlemanager.h
+    bundlemanager.h \
+    regex.h
 
 FORMS += \
     navigator.ui
 
-unix|win32: LIBS += -lboost_regex
+unix|win32: LIBS += -lonig
+
+

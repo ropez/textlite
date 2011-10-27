@@ -11,12 +11,11 @@
 
 #include <QtDebug>
 
-#include <boost/regex.hpp>
+#include "regex.h"
 
 namespace {
+typedef QString::const_iterator iter_t;
 enum MatchType { Normal, Begin, End };
-typedef std::wstring::const_iterator iter_t;
-typedef std::wstring::difference_type diff_t;
 
 struct RuleData;
 typedef QSharedPointer<RuleData> RulePtr;
@@ -29,11 +28,11 @@ struct RuleData {
     QString name;
     QString contentName;
     QString include;
-    std::wstring beginPattern;
-    std::wstring endPattern;
-    std::wstring matchPattern;
-    boost::wregex begin;
-    boost::wregex match;
+    QString beginPattern;
+    QString endPattern;
+    QString matchPattern;
+    Regex begin;
+    Regex match;
     QMap<int, RulePtr> captures;
     QMap<int, RulePtr> beginCaptures;
     QMap<int, RulePtr> endCaptures;
@@ -46,27 +45,24 @@ struct ContextItem {
     explicit ContextItem(RulePtr p = RulePtr()) : rule(p) {}
 
     RulePtr rule;
-    std::wstring formattedEndPattern;
-    boost::wregex end;
+    QString formattedEndPattern;
+    Regex end;
 };
 
 void _HashCombine(int& h, int hh) {
     h = (h << 4) ^ (h >> 28) ^ hh;
 }
 
-int _Hash(const std::wstring& str) {
+int _Hash(const QString& str) {
     int h = 0;
-    for (std::wstring::const_iterator it = str.begin(); it != str.end(); ++it) {
-        _HashCombine(h, static_cast<int>(*it));
+    for (QString::const_iterator it = str.begin(); it != str.end(); ++it) {
+        _HashCombine(h, static_cast<int>(it->unicode()));
     }
     return h;
 }
 
-int _Hash(const boost::wregex& regex) {
-    if (regex.empty())
-        return 0;
-    else
-        return _Hash(regex.expression());
+int _Hash(const Regex& regex) {
+    return _Hash(regex.pattern());
 }
 
 int _Hash(const ContextItem& item) {
@@ -88,21 +84,12 @@ struct Context : public QTextBlockUserData {
     QStack<ContextItem> stack;
 };
 
-void replace(std::wstring& str, const std::wstring& from, const std::wstring& to) {
-    size_t pos = 0;
-    while((pos = str.find(from, pos)) != std::wstring::npos) {
-        str.replace(pos, from.length(), to);
-        pos += to.length();
-    }
-}
-
-std::wstring formatEndPattern(const std::wstring& fmt, const boost::wsmatch& beginMatch) {
-    static const std::wstring FROM[] = { L"\\0", L"\\1", L"\\2", L"\\3", L"\\4",
-                                         L"\\5", L"\\6", L"\\7", L"\\8", L"\\9" };
-    size_t size = std::min(beginMatch.size(), 10UL);
-    std::wstring result = fmt;
-    for (size_t i = 0; i < size; i++) {
-        replace(result, FROM[i], beginMatch[i]);
+QString formatEndPattern(const QString& fmt, const QString& text, const Match& beginMatch) {
+    int size = qMin(beginMatch.size(), 10);
+    QString result = fmt;
+    for (int i = 0; i < size; i++) {
+        QString ref = "\\" + QString::number(i);
+        result.replace(ref, text.mid(beginMatch.pos(i), beginMatch.len(i)));
     }
     return result;
 }
@@ -126,7 +113,7 @@ class HighlighterPrivate
     void resolveChildRules(RulePtr parentRule);
 
     void searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
-                        diff_t& foundPos, RulePtr& foundRule, MatchType& foundMatchType, boost::wsmatch& foundMatch);
+                        int& foundPos, RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch);
 };
 
 QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextCharFormat& baseFormat)
@@ -165,25 +152,15 @@ RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData, const QTextCha
     rule->contentName = ruleData.value("contentName").toString();
     rule->include = ruleData.value("include").toString();
     if (ruleData.contains("begin")) {
-        rule->beginPattern = ruleData.value("begin").toString().toStdWString();
-        try {
-            rule->begin.assign(rule->beginPattern);
-        } catch (const boost::bad_expression& e) {
-            qWarning() << e.what();
-            qWarning() << QString::fromStdWString(rule->beginPattern);
-        }
+        rule->beginPattern = ruleData.value("begin").toString();
+        rule->begin = Regex(rule->beginPattern);
     }
     if (ruleData.contains("end")) {
-        rule->endPattern = ruleData.value("end").toString().toStdWString();
+        rule->endPattern = ruleData.value("end").toString();
     }
     if (ruleData.contains("match")) {
-        rule->matchPattern = ruleData.value("match").toString().toStdWString();
-        try {
-           rule->match.assign(rule->matchPattern);
-        } catch (const boost::bad_expression& e) {
-            qWarning() << e.what();
-            qWarning() << QString::fromStdWString(rule->matchPattern);
-        }
+        rule->matchPattern = ruleData.value("match").toString();
+        rule->match = Regex(rule->matchPattern);
     }
     QVariant ruleListData = ruleData.value("patterns");
     if (ruleListData.isValid()) {
@@ -318,29 +295,26 @@ void Highlighter::readSyntaxFile(const QString& syntaxFile)
 }
 
 void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
-                                        diff_t& foundPos, RulePtr& foundRule, MatchType& foundMatchType, boost::wsmatch& foundMatch)
+                                        int& foundPos, RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch)
 {
-    const boost::match_flag_type flags = boost::match_default;
-    const diff_t offset = index - base;
+    const int offset = index - base;
 
     foreach (RulePtr rule, parentRule->patterns) {
-        if (!rule->begin.empty()) {
-            boost::wsmatch match;
-            if (boost::regex_search(index, end, match, rule->begin, flags, base)) {
-                diff_t pos = offset + match.position();
-                if (foundMatch.empty() || pos < foundPos) {
-                    foundPos = pos;
+        if (rule->begin.isValid()) {
+            Match match;
+            if (rule->begin.search(base, end, index, end, match)) {
+                if (foundMatch.isEmpty() || match.pos() < foundPos) {
+                    foundPos = match.pos();
                     foundRule = rule;
                     foundMatchType = Begin;
                     foundMatch.swap(match);
                 }
             }
-        } else if (!rule->match.empty()) {
-            boost::wsmatch match;
-            if (boost::regex_search(index, end, match, rule->match, flags, base)) {
-                diff_t pos = offset + match.position();
-                if (foundMatch.empty() || pos < foundPos) {
-                    foundPos = pos;
+        } else if (rule->match.isValid()) {
+            Match match;
+            if (rule->match.search(base, end, index, end, match)) {
+                if (foundMatch.isEmpty() || match.pos() < foundPos) {
+                    foundPos = match.pos();
                     foundRule = rule;
                     foundMatchType = Normal;
                     foundMatch.swap(match);
@@ -369,34 +343,29 @@ void Highlighter::highlightBlock(const QString &text)
         contextStack.push(ContextItem(d->root));
     }
 
-    const boost::match_flag_type flags = boost::match_default;
-    const std::wstring _text = text.toStdWString();
-    const iter_t base = _text.begin();
-    const iter_t end = _text.end();
+    const iter_t base = text.begin();
+    const iter_t end = text.end();
 
     iter_t index = base;
     while (true) {
         Q_ASSERT(contextStack.size() > 0);
-        ContextItem context = contextStack.top();
+        ContextItem& context = contextStack.top();
 
-        const diff_t offset = index - base;
-        diff_t foundPos = _text.length();
+        const int offset = index - base;
+        int foundPos = text.length();
 
         RulePtr foundRule;
         MatchType foundMatchType = Normal;
-        boost::wsmatch foundMatch;
+        Match foundMatch;
 
-        if (!context.end.empty()) {
+        if (context.end.isValid()) {
             RulePtr rule = context.rule;
-            boost::wsmatch match;
-            if (boost::regex_search(index, end, match, context.end, flags, base)) {
-                diff_t pos = offset + match.position();
-                if (foundMatch.empty() || pos < foundPos) {
-                    foundPos = pos;
-                    foundRule = rule;
-                    foundMatchType = End;
-                    foundMatch.swap(match);
-                }
+            Match match;
+            if (context.end.search(base, end, index, end, match)) {
+                foundPos = match.pos();
+                foundRule = rule;
+                foundMatchType = End;
+                foundMatch.swap(match);
             }
         }
 
@@ -408,11 +377,11 @@ void Highlighter::highlightBlock(const QString &text)
         }
 
         // Did we find anything to highlight?
-        if (foundMatch.empty())
+        if (foundMatch.isEmpty())
             break;
 
         Q_ASSERT(base + foundPos <= end);
-        setFormat(foundPos, foundMatch.length(), foundRule->format);
+        setFormat(foundMatch.pos(), foundMatch.len(), foundRule->format);
 
         QMap<int, RulePtr> captures;
 
@@ -426,8 +395,8 @@ void Highlighter::highlightBlock(const QString &text)
             // Compile the regular expression that will end this context,
             // and may include captures from the found match
             ContextItem item(foundRule);
-            item.formattedEndPattern = formatEndPattern(foundRule->endPattern, foundMatch);
-            item.end.assign(item.formattedEndPattern);
+            item.formattedEndPattern = formatEndPattern(foundRule->endPattern, text, foundMatch);
+            item.end = Regex(item.formattedEndPattern);
             contextStack.push(item);
             break;
         }
@@ -438,18 +407,17 @@ void Highlighter::highlightBlock(const QString &text)
         }
 
         // Highlight captures
-        for (size_t c = 1; c <= foundMatch.size(); c++) {
-            if (foundMatch.position(c) != -1) {
-                diff_t pos = offset + foundMatch.position(c);
+        for (int c = 1; c < foundMatch.size(); c++) {
+            if (foundMatch.pos(c) != -1) {
                 if (captures.contains(c)) {
-                    Q_ASSERT(pos >= foundPos);
-                    Q_ASSERT(foundMatch.length(c) > 0);
-                    Q_ASSERT(pos + foundMatch.length(c) <= foundPos + foundMatch.length());
-                    setFormat(pos, foundMatch.length(c), captures[c]->format);
+                    Q_ASSERT(foundMatch.pos(c) >= foundMatch.pos());
+                    Q_ASSERT(foundMatch.len(c) > 0);
+                    Q_ASSERT(foundMatch.pos(c) + foundMatch.len(c) <= foundMatch.pos() + foundMatch.len());
+                    setFormat(foundMatch.pos(c), foundMatch.len(c), captures[c]->format);
                 }
             }
         }
-        index = base + foundPos + foundMatch.length();
+        index = base + foundMatch.pos() + foundMatch.len();
     }
 
     if (contextStack.size() > 1) {
