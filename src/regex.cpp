@@ -12,6 +12,7 @@ class MatchPrivate
     friend class Regex;
     friend class Match;
 
+    Regex::iterator begin;
     OnigRegion* region;
 };
 
@@ -49,6 +50,11 @@ int Match::pos(int n) const
 int Match::len(int n) const
 {
     return d_func()->region->end[n]/sizeof(QChar) - pos(n);
+}
+
+QString Match::cap(int n) const
+{
+    return QString(d_func()->begin + pos(n), len(n));
 }
 
 class RegexPrivate
@@ -121,6 +127,9 @@ bool Regex::search(iterator begin, iterator end, Match &match)
 
 bool Regex::search(iterator begin, iterator end, iterator offset, iterator range, Match &match)
 {
-    int r = onig_search(d_func()->rx, uc(begin), uc(end), uc(offset), uc(range), match.d_func()->region, ONIG_OPTION_NONE);
+    MatchPrivate* m = match.d_func();
+
+    m->begin = begin;
+    int r = onig_search(d_func()->rx, uc(begin), uc(end), uc(offset), uc(range), m->region, ONIG_OPTION_NONE);
     return (r != ONIG_MISMATCH);
 }

@@ -20,6 +20,7 @@ public:
 
     int pos(int n = 0) const;
     int len(int n = 0) const;
+    QString cap(int n = 0) const;
 
 private:
     friend class Regex;
