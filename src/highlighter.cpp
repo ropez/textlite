@@ -84,12 +84,12 @@ struct Context : public QTextBlockUserData {
     QStack<ContextItem> stack;
 };
 
-QString formatEndPattern(const QString& fmt, const QString& text, const Match& beginMatch) {
+QString formatEndPattern(const QString& fmt, const Match& beginMatch) {
     int size = qMin(beginMatch.size(), 10);
     QString result = fmt;
     for (int i = 0; i < size; i++) {
         QString ref = "\\" + QString::number(i);
-        result.replace(ref, text.mid(beginMatch.pos(i), beginMatch.len(i)));
+        result.replace(ref, beginMatch.cap(i));
     }
     return result;
 }
@@ -395,7 +395,7 @@ void Highlighter::highlightBlock(const QString &text)
             // Compile the regular expression that will end this context,
             // and may include captures from the found match
             ContextItem item(foundRule);
-            item.formattedEndPattern = formatEndPattern(foundRule->endPattern, text, foundMatch);
+            item.formattedEndPattern = formatEndPattern(foundRule->endPattern, foundMatch);
             item.end.setPattern(item.formattedEndPattern);
             contextStack.push(item);
             break;
