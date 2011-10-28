@@ -411,7 +411,6 @@ void Highlighter::highlightBlock(const QString &text)
             if (foundMatch.pos(c) != -1) {
                 if (captures.contains(c)) {
                     Q_ASSERT(foundMatch.pos(c) >= foundMatch.pos());
-                    Q_ASSERT(foundMatch.len(c) > 0);
                     Q_ASSERT(foundMatch.pos(c) + foundMatch.len(c) <= foundMatch.pos() + foundMatch.len());
                     setFormat(foundMatch.pos(c), foundMatch.len(c), captures[c]->format);
                 }
