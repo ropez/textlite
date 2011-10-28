@@ -102,10 +102,11 @@ QString Regex::pattern() const
     return d_func()->pattern;
 }
 
-void Regex::setPattern(const QString& pattern)
+bool Regex::setPattern(const QString& pattern)
 {
     Regex that(pattern);
     *this = that;
+    return isValid();
 }
 
 bool Regex::search(const QString &target, Match &match)

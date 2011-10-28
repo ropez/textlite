@@ -45,7 +45,7 @@ public:
 
     QString pattern() const;
 
-    void setPattern(const QString& pattern);
+    bool setPattern(const QString& pattern);
 
     bool search(const QString& target, Match& match);
     bool search(iterator begin, iterator end, Match& match);
