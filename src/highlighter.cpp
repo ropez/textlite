@@ -215,6 +215,7 @@ void HighlighterPrivate::resolveChildRules(RulePtr parentRule)
             } else {
                 qWarning() << "Pattern not in repository" << rule->include;
                 iter.remove();
+                continue;
             }
         }
         resolveChildRules(rule);
