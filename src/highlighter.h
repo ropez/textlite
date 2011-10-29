@@ -5,6 +5,17 @@
 
 class HighlighterPrivate;
 
+class Theme
+{
+public:
+    void readThemeFile(const QString& themeFile);
+
+    QTextCharFormat format(const QString& name) const;
+
+private:
+    QHash<QString, QTextCharFormat> data;
+};
+
 class Highlighter : public QSyntaxHighlighter
 {
     Q_OBJECT

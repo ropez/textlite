@@ -95,6 +95,53 @@ QString formatEndPattern(const QString& fmt, const Match& beginMatch) {
 }
 }
 
+void Theme::readThemeFile(const QString &themeFile)
+{
+    PlistReader reader;
+    QVariantMap def = reader.read(themeFile).toMap();
+    QVariantList settingsListData = def.value("settings").toList();
+    QListIterator<QVariant> iter(settingsListData);
+    while (iter.hasNext()) {
+        QVariantMap itemData = iter.next().toMap();
+        QTextCharFormat format;
+        QVariantMap settingsData = itemData.value("settings").toMap();
+        QMapIterator<QString, QVariant> settingsIter(settingsData);
+        while (settingsIter.hasNext()) {
+            settingsIter.next();
+            QString key = settingsIter.key();
+            if (key == "foreground") {
+                QString color = settingsIter.value().toString();
+                format.setForeground(QColor(color));
+            } else if (key == "background") {
+                QString color = settingsIter.value().toString();
+                format.setBackground(QColor(color));
+            } else if (key == "fontStyle") {
+                QString style = settingsIter.value().toString();
+                if (style.isEmpty()) {
+                    format.setFontWeight(50);
+                } else if (style == "bold") {
+                    format.setFontWeight(75);
+                } else if (style == "italic") {
+                    format.setFontItalic(true);
+                } else {
+                    qDebug() << "Unknown font style:" << style;
+                }
+            } else {
+                qDebug() << "Unknown key in theme:" << key << "=>" << settingsIter.value();
+            }
+        }
+        QString scopes = itemData.value("scope").toString();
+        foreach (QString scope, scopes.split(",")) {
+            data[scope.trimmed()] = format;
+        }
+    }
+}
+
+QTextCharFormat Theme::format(const QString& name) const
+{
+    return data.value(name);
+}
+
 class HighlighterPrivate
 {
     friend class Highlighter;
@@ -104,7 +151,7 @@ class HighlighterPrivate
     QList<RulePtr> all;
     QMap<QString, RulePtr> repository;
 
-    QMap<QString, QTextCharFormat> theme;
+    Theme theme;
 
     QTextCharFormat makeFormat(const QString& name, const QTextCharFormat& baseFormat = QTextCharFormat());
     QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
@@ -119,13 +166,10 @@ class HighlighterPrivate
 QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextCharFormat& baseFormat)
 {
     QTextCharFormat format = baseFormat;
-    QMapIterator<QString, QTextCharFormat> iter(theme);
-    while (iter.hasNext()) {
-        iter.next();
-        QString scope = iter.key();
-        if (!scope.isEmpty() && name.startsWith(scope)) {
-            format.merge(iter.value());
-        }
+    QStringList names = name.split(".");
+    for (int i = 0; i < names.size(); i++) {
+        QString n = QStringList(names.mid(0, i+1)).join(".");
+        format.merge(theme.format(n));
     }
     return format;
 }
@@ -168,7 +212,10 @@ RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData, const QTextCha
     }
 
     rule->format = makeFormat(rule->name, baseFormat);
-    rule->contentFormat = makeFormat(rule->contentName, rule->format);
+    if (rule->contentName == QString())
+        rule->contentFormat = rule->format;
+    else
+        rule->contentFormat = makeFormat(rule->contentName, baseFormat);
 
     QVariant capturesData = ruleData.value("captures");
     rule->captures = makeCaptures(capturesData.toMap(), rule->format);
@@ -192,7 +239,7 @@ QList<WeakRulePtr> HighlighterPrivate::makeRuleList(const QVariantList& ruleList
     QListIterator<QVariant> iter(ruleListData);
     while (iter.hasNext()) {
         QVariantMap ruleData = iter.next().toMap();
-        rules << makeRule(ruleData, theme.value(""));
+        rules << makeRule(ruleData, theme.format(""));
     }
     return rules;
 }
@@ -235,44 +282,7 @@ Highlighter::~Highlighter()
 
 void Highlighter::readThemeFile(const QString& themeFile)
 {
-    PlistReader reader;
-    QVariantMap def = reader.read(themeFile).toMap();
-    QVariantList settingsListData = def.value("settings").toList();
-    QListIterator<QVariant> iter(settingsListData);
-    while (iter.hasNext()) {
-        QVariantMap itemData = iter.next().toMap();
-        QTextCharFormat format;
-        QVariantMap settingsData = itemData.value("settings").toMap();
-        QMapIterator<QString, QVariant> settingsIter(settingsData);
-        while (settingsIter.hasNext()) {
-            settingsIter.next();
-            QString key = settingsIter.key();
-            if (key == "foreground") {
-                QString color = settingsIter.value().toString();
-                format.setForeground(QColor(color));
-            } else if (key == "background") {
-                QString color = settingsIter.value().toString();
-                format.setBackground(QColor(color));
-            } else if (key == "fontStyle") {
-                QString style = settingsIter.value().toString();
-                if (style.isEmpty()) {
-                    format.setFontWeight(50);
-                } else if (style == "bold") {
-                    format.setFontWeight(75);
-                } else if (style == "italic") {
-                    format.setFontItalic(true);
-                } else {
-                    qDebug() << "Unknown font style:" << style;
-                }
-            } else {
-                qDebug() << "Unknown key in theme:" << key << "=>" << settingsIter.value();
-            }
-        }
-        QString scopes = itemData.value("scope").toString();
-        foreach (QString scope, scopes.split(",")) {
-            d->theme[scope.trimmed()] = format;
-        }
-    }
+    d->theme.readThemeFile(themeFile);
 }
 
 void Highlighter::readSyntaxFile(const QString& syntaxFile)
