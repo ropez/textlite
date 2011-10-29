@@ -203,9 +203,8 @@ void HighlighterPrivate::resolveChildRules(RulePtr parentRule)
     parentRule->visited = true;
 
     QMutableListIterator<WeakRulePtr> iter(parentRule->patterns);
-    iter.toBack();
-    while (iter.hasPrevious()) {
-        RulePtr rule = iter.previous();
+    while (iter.hasNext()) {
+        RulePtr rule = iter.next();
         if (rule->include != QString()) {
             if (rule->include == "$self") {
                 rule = this->root;
