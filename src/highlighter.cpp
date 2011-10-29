@@ -37,8 +37,6 @@ struct RuleData {
     QMap<int, RulePtr> beginCaptures;
     QMap<int, RulePtr> endCaptures;
     QList<WeakRulePtr> patterns;
-    QTextCharFormat format;
-    QTextCharFormat contentFormat;
 };
 
 struct ContextItem {
@@ -164,8 +162,8 @@ class HighlighterPrivate
 
     Theme theme;
 
-    QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
-    RulePtr makeRule(const QVariantMap& ruleData, const QTextCharFormat& baseFormat = QTextCharFormat());
+    QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData);
+    RulePtr makeRule(const QVariantMap& ruleData);
     QList<WeakRulePtr> makeRuleList(const QVariantList& ruleListData);
     void resolveChildRules(RulePtr parentRule);
 
@@ -173,7 +171,7 @@ class HighlighterPrivate
                         int& foundPos, RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch);
 };
 
-QMap<int, RulePtr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat)
+QMap<int, RulePtr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData)
 {
     QMap<int, RulePtr> captures;
     QMapIterator<QString, QVariant> iter(capturesData);
@@ -181,18 +179,21 @@ QMap<int, RulePtr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesD
         iter.next();
         int num = iter.key().toInt();
         QVariantMap data = iter.value().toMap();
-        captures[num] = makeRule(data, baseFormat);
+        captures[num] = makeRule(data);
     }
     return captures;
 }
 
-RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData, const QTextCharFormat& baseFormat)
+RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData)
 {
     RulePtr rule(new RuleData);
     this->all.append(rule);
 
     rule->name = ruleData.value("name").toString();
-    rule->contentName = ruleData.value("contentName").toString();
+    if (ruleData.contains("contentName"))
+        rule->contentName = ruleData.value("contentName").toString();
+    else
+        rule->contentName = rule->name;
     rule->include = ruleData.value("include").toString();
     if (ruleData.contains("begin")) {
         rule->beginPattern = ruleData.value("begin").toString();
@@ -210,22 +211,16 @@ RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData, const QTextCha
         rule->patterns = makeRuleList(ruleListData.toList());
     }
 
-    rule->format = theme.mergeFormat(rule->name, baseFormat);
-    if (rule->contentName == QString())
-        rule->contentFormat = rule->format;
-    else
-        rule->contentFormat = theme.mergeFormat(rule->contentName, baseFormat);
-
     QVariant capturesData = ruleData.value("captures");
-    rule->captures = makeCaptures(capturesData.toMap(), rule->format);
+    rule->captures = makeCaptures(capturesData.toMap());
     QVariant beginCapturesData = ruleData.value("beginCaptures");
     if (beginCapturesData.isValid())
-        rule->beginCaptures = makeCaptures(beginCapturesData.toMap(), rule->format);
+        rule->beginCaptures = makeCaptures(beginCapturesData.toMap());
     else
         rule->beginCaptures = rule->captures;
     QVariant endCapturesData = ruleData.value("endCaptures");
     if (endCapturesData.isValid())
-        rule->endCaptures = makeCaptures(endCapturesData.toMap(), rule->format);
+        rule->endCaptures = makeCaptures(endCapturesData.toMap());
     else
         rule->endCaptures = rule->captures;
 
@@ -238,7 +233,7 @@ QList<WeakRulePtr> HighlighterPrivate::makeRuleList(const QVariantList& ruleList
     QListIterator<QVariant> iter(ruleListData);
     while (iter.hasNext()) {
         QVariantMap ruleData = iter.next().toMap();
-        rules << makeRule(ruleData, theme.format(""));
+        rules << makeRule(ruleData);
     }
     return rules;
 }
@@ -339,6 +334,13 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
     }
 }
 
+void Highlighter::setNamedFormat(int start, int count, const QString &name, const QString& baseFormatName)
+{
+    QTextCharFormat baseFormat = d->theme.mergeFormat(baseFormatName, QTextCharFormat());
+    QTextCharFormat format = d->theme.mergeFormat(name, baseFormat);
+    setFormat(start, count, format);
+}
+
 void Highlighter::highlightBlock(const QString &text)
 {
     if (!d->root)
@@ -383,7 +385,7 @@ void Highlighter::highlightBlock(const QString &text)
 
         // Highlight skipped section
         if (foundPos != offset) {
-            setFormat(offset, foundPos - offset, context.rule->contentFormat);
+            setNamedFormat(offset, foundPos - offset, context.rule->contentName, "");
         }
 
         // Did we find anything to highlight?
@@ -391,7 +393,7 @@ void Highlighter::highlightBlock(const QString &text)
             break;
 
         Q_ASSERT(base + foundPos <= end);
-        setFormat(foundMatch.pos(), foundMatch.len(), foundRule->format);
+        setNamedFormat(foundMatch.pos(), foundMatch.len(), foundRule->name, "");
 
         QMap<int, RulePtr> captures;
 
@@ -422,7 +424,7 @@ void Highlighter::highlightBlock(const QString &text)
                 if (captures.contains(c)) {
                     Q_ASSERT(foundMatch.pos(c) >= foundMatch.pos());
                     Q_ASSERT(foundMatch.pos(c) + foundMatch.len(c) <= foundMatch.pos() + foundMatch.len());
-                    setFormat(foundMatch.pos(c), foundMatch.len(c), captures[c]->format);
+                    setNamedFormat(foundMatch.pos(c), foundMatch.len(c), captures[c]->name, foundRule->name);
                 }
             }
         }
