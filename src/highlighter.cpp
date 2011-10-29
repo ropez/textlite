@@ -279,8 +279,12 @@ void Highlighter::readSyntaxFile(const QString& syntaxFile)
 {
     PlistReader reader;
     QVariantMap def = reader.read(syntaxFile).toMap();
-    QVariantMap repositoryData = def.value("repository").toMap();
 
+    QVariantMap rootData;
+    rootData["patterns"] = def.value("patterns");
+    d->root = d->makeRule(rootData);
+
+    QVariantMap repositoryData = def.value("repository").toMap();
     QMapIterator<QString, QVariant> iter(repositoryData);
     while (iter.hasNext()) {
         iter.next();
@@ -288,9 +292,6 @@ void Highlighter::readSyntaxFile(const QString& syntaxFile)
         d->repository["#" + iter.key()] = d->makeRule(ruleData);
     }
 
-    QVariantMap rootData;
-    rootData["patterns"] = def.value("patterns");
-    d->root = d->makeRule(rootData);
     d->resolveChildRules(d->root);
 }
 
