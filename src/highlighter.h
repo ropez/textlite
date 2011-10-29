@@ -11,6 +11,7 @@ public:
     void readThemeFile(const QString& themeFile);
 
     QTextCharFormat format(const QString& name) const;
+    QTextCharFormat mergeFormat(const QString& name, const QTextCharFormat& baseFormat) const;
 
 private:
     QHash<QString, QTextCharFormat> data;

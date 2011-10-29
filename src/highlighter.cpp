@@ -142,6 +142,17 @@ QTextCharFormat Theme::format(const QString& name) const
     return data.value(name);
 }
 
+QTextCharFormat Theme::mergeFormat(const QString &name, const QTextCharFormat &baseFormat) const
+{
+    QTextCharFormat merged = baseFormat;
+    QStringList names = name.split(".");
+    for (int i = 0; i < names.size(); i++) {
+        QString n = QStringList(names.mid(0, i+1)).join(".");
+        merged.merge(format(n));
+    }
+    return merged;
+}
+
 class HighlighterPrivate
 {
     friend class Highlighter;
@@ -153,7 +164,6 @@ class HighlighterPrivate
 
     Theme theme;
 
-    QTextCharFormat makeFormat(const QString& name, const QTextCharFormat& baseFormat = QTextCharFormat());
     QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat = QTextCharFormat());
     RulePtr makeRule(const QVariantMap& ruleData, const QTextCharFormat& baseFormat = QTextCharFormat());
     QList<WeakRulePtr> makeRuleList(const QVariantList& ruleListData);
@@ -162,17 +172,6 @@ class HighlighterPrivate
     void searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
                         int& foundPos, RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch);
 };
-
-QTextCharFormat HighlighterPrivate::makeFormat(const QString& name, const QTextCharFormat& baseFormat)
-{
-    QTextCharFormat format = baseFormat;
-    QStringList names = name.split(".");
-    for (int i = 0; i < names.size(); i++) {
-        QString n = QStringList(names.mid(0, i+1)).join(".");
-        format.merge(theme.format(n));
-    }
-    return format;
-}
 
 QMap<int, RulePtr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData, const QTextCharFormat& baseFormat)
 {
@@ -211,11 +210,11 @@ RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData, const QTextCha
         rule->patterns = makeRuleList(ruleListData.toList());
     }
 
-    rule->format = makeFormat(rule->name, baseFormat);
+    rule->format = theme.mergeFormat(rule->name, baseFormat);
     if (rule->contentName == QString())
         rule->contentFormat = rule->format;
     else
-        rule->contentFormat = makeFormat(rule->contentName, baseFormat);
+        rule->contentFormat = theme.mergeFormat(rule->contentName, baseFormat);
 
     QVariant capturesData = ruleData.value("captures");
     rule->captures = makeCaptures(capturesData.toMap(), rule->format);
