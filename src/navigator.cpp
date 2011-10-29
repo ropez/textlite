@@ -4,13 +4,23 @@
 #include <QCompleter>
 #include <QFileSystemModel>
 #include <QLineEdit>
+#include <QDir>
 
 #include <QtDebug>
+
+Navigator* Navigator::s_instance = 0;
+
+Navigator* Navigator::instance()
+{
+    return s_instance;
+}
 
 Navigator::Navigator(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Navigator)
 {
+    s_instance = this;
+
     ui->setupUi(this);
 
     connect(ui->comboBox, SIGNAL(returnPressed()), this, SLOT(activate()));
@@ -21,6 +31,14 @@ Navigator::Navigator(QWidget *parent) :
 
     completer->setModel(model);
     ui->comboBox->setCompleter(completer);
+
+    QDir themeDir("redcar-bundles/Themes");
+    themeDir.setFilter(QDir::Files);
+    themeDir.setNameFilters(QStringList() << "*.tmTheme");
+    QStringList themeList = themeDir.entryList();
+    ui->themeSelector->addItems(themeList);
+
+    connect(ui->themeSelector, SIGNAL(activated(QString)), this, SIGNAL(themeChange(QString)));
 }
 
 Navigator::~Navigator()

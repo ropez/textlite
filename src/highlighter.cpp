@@ -1,5 +1,6 @@
 #include "highlighter.h"
 #include "plistreader.h"
+#include "navigator.h"
 
 #include <QTextCharFormat>
 #include <QRegExp>
@@ -267,6 +268,7 @@ Highlighter::Highlighter(QTextDocument* document) :
     QSyntaxHighlighter(document),
     d(new HighlighterPrivate)
 {
+    connect(Navigator::instance(), SIGNAL(themeChange(QString)), this, SLOT(readThemeFile(QString)));
 }
 
 Highlighter::~Highlighter()
@@ -276,7 +278,8 @@ Highlighter::~Highlighter()
 
 void Highlighter::readThemeFile(const QString& themeFile)
 {
-    d->theme.readThemeFile(themeFile);
+    d->theme.readThemeFile("redcar-bundles/Themes/" + themeFile);
+    rehighlight();
 }
 
 void Highlighter::readSyntaxFile(const QString& syntaxFile)

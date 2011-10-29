@@ -66,7 +66,7 @@ Highlighter* BundleManager::getHighlighterForExtension(const QString& extension,
     Highlighter* highlighter = new Highlighter(document);
 
     // XXX
-    highlighter->readThemeFile("redcar-bundles/Themes/Espresso.tmTheme");
+    highlighter->readThemeFile("Espresso.tmTheme");
 
     if (d->bundles.contains(extension)) {
         highlighter->readSyntaxFile(d->bundles.value(extension));

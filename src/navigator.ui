@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>714</width>
-    <height>33</height>
+    <width>712</width>
+    <height>31</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,6 +30,9 @@
       </sizepolicy>
      </property>
     </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="themeSelector"/>
    </item>
   </layout>
  </widget>

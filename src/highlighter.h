@@ -24,6 +24,7 @@ public:
     explicit Highlighter(QTextDocument *document);
     ~Highlighter();
 
+public slots:
     void readThemeFile(const QString& themeFile);
     void readSyntaxFile(const QString& syntaxFile);
 
