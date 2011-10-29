@@ -42,6 +42,12 @@ public:
     int size() const;
 
     /**
+      * Returns true if the nth subexpression was matched (n = 0 means the whole
+      * expression)
+      */
+    bool matched(int n = 0) const;
+
+    /**
       * Returns the position of the nth subexpression (n = 0 means the whole
       * expression)
       */

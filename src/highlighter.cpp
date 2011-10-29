@@ -408,7 +408,7 @@ void Highlighter::highlightBlock(const QString &text)
 
         // Highlight captures
         for (int c = 1; c < foundMatch.size(); c++) {
-            if (foundMatch.pos(c) != -1) {
+            if (foundMatch.matched(c)) {
                 if (captures.contains(c)) {
                     Q_ASSERT(foundMatch.pos(c) >= foundMatch.pos());
                     Q_ASSERT(foundMatch.pos(c) + foundMatch.len(c) <= foundMatch.pos() + foundMatch.len());

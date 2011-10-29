@@ -42,6 +42,11 @@ int Match::size() const
     return d_func()->region->num_regs;
 }
 
+bool Match::matched(int n) const
+{
+    return d_func()->region->beg[n] != ONIG_MISMATCH;
+}
+
 int Match::pos(int n) const
 {
     return d_func()->region->beg[n]/sizeof(QChar);
