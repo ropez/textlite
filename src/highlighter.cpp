@@ -96,6 +96,7 @@ QString formatEndPattern(const QString& fmt, const Match& beginMatch) {
 
 void Theme::readThemeFile(const QString &themeFile)
 {
+    data.clear();
     PlistReader reader;
     QVariantMap def = reader.read(themeFile).toMap();
     QVariantList settingsListData = def.value("settings").toList();
@@ -337,13 +338,6 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
     }
 }
 
-void Highlighter::setNamedFormat(int start, int count, const QString &name, const QString& baseFormatName)
-{
-    QTextCharFormat baseFormat = d->theme.mergeFormat(baseFormatName, QTextCharFormat());
-    QTextCharFormat format = d->theme.mergeFormat(name, baseFormat);
-    setFormat(start, count, format);
-}
-
 void Highlighter::highlightBlock(const QString &text)
 {
     if (!d->root)
@@ -388,36 +382,42 @@ void Highlighter::highlightBlock(const QString &text)
 
         // Highlight skipped section
         if (foundPos != offset) {
-            setNamedFormat(offset, foundPos - offset, context.rule->contentName, "");
+            QTextCharFormat contentFormat = d->theme.mergeFormat(context.rule->contentName, d->theme.format(""));
+            setFormat(offset, foundPos - offset, contentFormat);
         }
 
         // Did we find anything to highlight?
         if (foundMatch.isEmpty())
             break;
 
+        if (foundMatchType == End) {
+            contextStack.pop();
+        }
+
         Q_ASSERT(base + foundPos <= end);
-        setNamedFormat(foundMatch.pos(), foundMatch.len(), foundRule->name, "");
+        QTextCharFormat contentFormat = d->theme.mergeFormat(contextStack.top().rule->contentName, d->theme.format(""));
+        QTextCharFormat foundFormat = d->theme.mergeFormat(foundRule->name, contentFormat);
+        setFormat(foundMatch.pos(), foundMatch.len(), foundFormat);
 
-        QMap<int, RulePtr> captures;
-
-        switch (foundMatchType) {
-        case Normal:
-            captures = foundRule->captures;
-            break;
-        case Begin:
-        {
-            captures = foundRule->beginCaptures;
+        if (foundMatchType == Begin) {
             // Compile the regular expression that will end this context,
             // and may include captures from the found match
             ContextItem item(foundRule);
             item.formattedEndPattern = formatEndPattern(foundRule->endPattern, foundMatch);
             item.end.setPattern(item.formattedEndPattern);
             contextStack.push(item);
-            break;
         }
+
+        QMap<int, RulePtr> captures;
+        switch (foundMatchType) {
+        case Normal:
+            captures = foundRule->captures;
+            break;
+        case Begin:
+            captures = foundRule->beginCaptures;
+            break;
         case End:
             captures = foundRule->endCaptures;
-            contextStack.pop();
             break;
         }
 
@@ -427,7 +427,7 @@ void Highlighter::highlightBlock(const QString &text)
                 if (captures.contains(c)) {
                     Q_ASSERT(foundMatch.pos(c) >= foundMatch.pos());
                     Q_ASSERT(foundMatch.pos(c) + foundMatch.len(c) <= foundMatch.pos() + foundMatch.len());
-                    setNamedFormat(foundMatch.pos(c), foundMatch.len(c), captures[c]->name, foundRule->name);
+                    setFormat(foundMatch.pos(c), foundMatch.len(c), d->theme.mergeFormat(captures[c]->name, foundFormat));
                 }
             }
         }

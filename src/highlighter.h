@@ -29,7 +29,6 @@ public slots:
     void readSyntaxFile(const QString& syntaxFile);
 
 protected:
-    void setNamedFormat(int start, int count, const QString& name, const QString& baseFormatName);
     void highlightBlock(const QString &text);
 
 private:
