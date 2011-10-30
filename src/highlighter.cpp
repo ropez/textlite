@@ -1,6 +1,5 @@
 #include "highlighter.h"
 #include "plistreader.h"
-#include "navigator.h"
 
 #include <QTextCharFormat>
 #include <QRegExp>
@@ -153,12 +152,43 @@ QTextCharFormat Theme::mergeFormat(const QString &name, const QTextCharFormat &b
     return merged;
 }
 
+class ThemeManagerPrivate
+{
+    friend class ThemeManager;
+
+    QString themeDirPath;
+    Theme theme;
+};
+
+ThemeManager::ThemeManager(const QString& themeDirPath, QObject *parent) :
+    QObject(parent),
+    d(new ThemeManagerPrivate)
+{
+    d->themeDirPath = themeDirPath;
+}
+
+ThemeManager::~ThemeManager()
+{
+}
+
+Theme ThemeManager::theme() const
+{
+    return d->theme;
+}
+
+void ThemeManager::readThemeFile(const QString& themeFile)
+{
+    d->theme.readThemeFile(d->themeDirPath + "/" + themeFile);
+    emit themeChanged(d->theme);
+}
+
 class HighlighterPrivate
 {
     friend class Highlighter;
 
-    RulePtr root;
+    ThemeManager* themeManager;
 
+    RulePtr root;
     QList<RulePtr> all;
     QMap<QString, RulePtr> repository;
 
@@ -265,11 +295,13 @@ void HighlighterPrivate::resolveChildRules(RulePtr parentRule)
     }
 }
 
-Highlighter::Highlighter(QTextDocument* document) :
+Highlighter::Highlighter(QTextDocument* document, ThemeManager *themeManager) :
     QSyntaxHighlighter(document),
     d(new HighlighterPrivate)
 {
-    connect(Navigator::instance(), SIGNAL(themeChange(QString)), this, SLOT(readThemeFile(QString)));
+    d->themeManager = themeManager;
+    d->theme = d->themeManager->theme();
+    connect(d->themeManager, SIGNAL(themeChanged(Theme)), this, SLOT(setTheme(Theme)));
 }
 
 Highlighter::~Highlighter()
@@ -277,9 +309,9 @@ Highlighter::~Highlighter()
     delete d;
 }
 
-void Highlighter::readThemeFile(const QString& themeFile)
+void Highlighter::setTheme(const Theme& theme)
 {
-    d->theme.readThemeFile("redcar-bundles/Themes/" + themeFile);
+    d->theme = theme;
     rehighlight();
 }
 

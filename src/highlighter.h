@@ -2,7 +2,9 @@
 #define HIGHLIGHTER_H
 
 #include <QSyntaxHighlighter>
+#include <QScopedPointer>
 
+class ThemeManagerPrivate;
 class HighlighterPrivate;
 
 class Theme
@@ -17,15 +19,34 @@ private:
     QHash<QString, QTextCharFormat> data;
 };
 
+class ThemeManager : public QObject
+{
+    Q_OBJECT
+public:
+    explicit ThemeManager(const QString& themeDirPath, QObject* parent = 0);
+    ~ThemeManager();
+
+    Theme theme() const;
+
+signals:
+    void themeChanged(const Theme& theme);
+
+public slots:
+    void readThemeFile(const QString& themeFile);
+
+private:
+    QScopedPointer<ThemeManagerPrivate> d;
+};
+
 class Highlighter : public QSyntaxHighlighter
 {
     Q_OBJECT
 public:
-    explicit Highlighter(QTextDocument *document);
+    explicit Highlighter(QTextDocument *document, ThemeManager* themeManager);
     ~Highlighter();
 
 public slots:
-    void readThemeFile(const QString& themeFile);
+    void setTheme(const Theme& theme);
     void readSyntaxFile(const QString& syntaxFile);
 
 protected:

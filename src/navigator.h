@@ -12,8 +12,6 @@ class Navigator : public QWidget
     Q_OBJECT
 
 public:
-    static Navigator* instance();
-
     explicit Navigator(QWidget *parent = 0);
     ~Navigator();
 
@@ -29,7 +27,6 @@ private slots:
 
 private:
     Ui::Navigator *ui;
-    static Navigator* s_instance;
 };
 
 #endif // NAVIGATOR_H

@@ -2,6 +2,7 @@
 #include "navigator.h"
 #include "editor.h"
 #include "bundlemanager.h"
+#include "highlighter.h" // XXX thememanager.h
 
 #include <QAction>
 #include <QLayout>
@@ -31,6 +32,7 @@ Window::Window(QWidget *parent) :
     reloadTimer->setSingleShot(true);
 
     connect(navigator, SIGNAL(activated(QString)), this, SLOT(setFileName(QString)));
+    connect(navigator, SIGNAL(themeChange(QString)), bundleManager->themeManager(), SLOT(readThemeFile(QString)));
     connect(editor, SIGNAL(textChanged()), this, SLOT(saveFile()));
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(readFileLater(QString)));
     connect(reloadTimer, SIGNAL(timeout()), this, SLOT(readPendingFiles()));

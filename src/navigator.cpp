@@ -8,19 +8,10 @@
 
 #include <QtDebug>
 
-Navigator* Navigator::s_instance = 0;
-
-Navigator* Navigator::instance()
-{
-    return s_instance;
-}
-
 Navigator::Navigator(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Navigator)
 {
-    s_instance = this;
-
     ui->setupUi(this);
 
     connect(ui->comboBox, SIGNAL(returnPressed()), this, SLOT(activate()));
