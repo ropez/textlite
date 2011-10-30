@@ -49,16 +49,6 @@ void BundleManager::readBundles(const QString &path)
             }
         }
     }
-
-    //    QFile fileList("files.txt");
-    //    fileList.open(QFile::ReadOnly);
-    //    while (!fileList.atEnd()) {
-    //        QByteArray line = fileList.readLine().trimmed();
-    //        qDebug() << line;
-    //        PlistReader reader;
-    //        QVariant map = reader.read(line);
-    //        Q_ASSERT(map.isValid());
-    //    }
 }
 
 Highlighter* BundleManager::getHighlighterForExtension(const QString& extension, QTextDocument* document)
