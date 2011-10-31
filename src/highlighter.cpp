@@ -125,6 +125,9 @@ void Theme::readThemeFile(const QString &themeFile)
                 } else {
                     qDebug() << "Unknown font style:" << style;
                 }
+            } else if (key == "caret") {
+                QString color = settingsIter.value().toString();
+                format.setProperty(QTextFormat::UserProperty, QBrush(QColor(color)));
             } else {
                 qDebug() << "Unknown key in theme:" << key << "=>" << settingsIter.value();
             }

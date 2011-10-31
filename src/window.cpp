@@ -39,6 +39,7 @@ Window::Window(QWidget *parent) :
     connect(editor, SIGNAL(textChanged()), this, SLOT(saveFile()));
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(readFileLater(QString)));
     connect(reloadTimer, SIGNAL(timeout()), this, SLOT(readPendingFiles()));
+    connect(bundleManager, SIGNAL(themeChanged(Theme)), this, SLOT(themeChanged(Theme)));
 
     QAction* navigate = new QAction(this);
     navigate->setShortcut(QKeySequence(tr("Ctrl+L")));
@@ -122,4 +123,15 @@ void Window::readPendingFiles()
         readFile(name);
     }
     this->filename = fn;
+}
+
+void Window::themeChanged(const Theme& theme)
+{
+    QTextCharFormat baseFormat = theme.format("");
+
+    QPalette p;
+    p.setBrush(QPalette::Base, baseFormat.background());
+    p.setBrush(QPalette::Foreground, baseFormat.foreground());
+    p.setBrush(QPalette::Text, baseFormat.brushProperty(QTextFormat::UserProperty));
+    editor->setPalette(p);
 }

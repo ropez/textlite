@@ -9,6 +9,7 @@ class QTextDocument;
 class QFileSystemWatcher;
 class QTimer;
 
+class Theme;
 class Navigator;
 class Editor;
 class BundleManager;
@@ -25,6 +26,9 @@ private slots:
     void readFile(const QString& name);
     void readFileLater(const QString& name);
     void readPendingFiles();
+
+private slots:
+    void themeChanged(const Theme& theme);
 
 private:
     Navigator* navigator;
