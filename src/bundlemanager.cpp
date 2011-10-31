@@ -28,7 +28,6 @@ BundleManager::BundleManager(const QString& themeDirPath, QObject *parent) :
 
 BundleManager::~BundleManager()
 {
-    delete d;
 }
 
 Theme BundleManager::theme() const

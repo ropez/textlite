@@ -277,7 +277,6 @@ Highlighter::Highlighter(QTextDocument* document, BundleManager *bundleManager) 
 
 Highlighter::~Highlighter()
 {
-    delete d;
 }
 
 void Highlighter::setTheme(const Theme& theme)

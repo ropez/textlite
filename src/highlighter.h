@@ -34,7 +34,7 @@ protected:
     void highlightBlock(const QString &text);
 
 private:
-    HighlighterPrivate* d;
+    QScopedPointer<HighlighterPrivate> d;
 };
 
 #endif // HIGHLIGHTER_H

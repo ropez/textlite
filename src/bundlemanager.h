@@ -2,6 +2,7 @@
 #define BUNDLEMANAGER_H
 
 #include <QObject>
+#include <QScopedPointer>
 
 class Theme;
 class Highlighter;
@@ -29,7 +30,7 @@ public slots:
     void readThemeFile(const QString& themeFile);
 
 private:
-    BundleManagerPrivate* d;
+    QScopedPointer<BundleManagerPrivate> d;
 };
 
 #endif // BUNDLEMANAGER_H
