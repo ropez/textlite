@@ -27,6 +27,9 @@ Window::Window(QWidget *parent) :
     bundleManager = new BundleManager("redcar-bundles/Themes", this);
     bundleManager->readBundles("redcar-bundles/Bundles");
 
+    // XXX
+    bundleManager->readThemeFile("Espresso.tmTheme");
+
     watcher = new QFileSystemWatcher(this);
     reloadTimer = new QTimer(this);
     reloadTimer->setSingleShot(true);

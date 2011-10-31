@@ -21,9 +21,6 @@ BundleManager::BundleManager(const QString& themeDirPath, QObject *parent) :
     d(new BundleManagerPrivate)
 {
     d->themeDirPath = themeDirPath;
-
-    // XXX
-    readThemeFile("Espresso.tmTheme");
 }
 
 BundleManager::~BundleManager()

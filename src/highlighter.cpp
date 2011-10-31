@@ -3,7 +3,6 @@
 #include "bundlemanager.h"
 
 #include <QTextCharFormat>
-#include <QRegExp>
 #include <QList>
 #include <QStack>
 #include <QMap>
