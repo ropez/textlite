@@ -61,6 +61,8 @@ void Window::setFileName(const QString &name)
         font.setFamily("DejaVu Sans Mono");
         editor->document()->setDefaultFont(font);
 
+        editor->setTabStopWidth(QFontMetrics(font).width(' ') * 4);
+
         readFile(name);
 
         QFileInfo info(name);
