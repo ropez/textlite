@@ -10,19 +10,20 @@ class BundleManagerPrivate
 {
     friend class BundleManager;
 
-    ThemeManager* themeManager;
+    Theme theme;
+    QString themeDirPath;
 
     QMap<QString, QString> bundles;
 };
 
-BundleManager::BundleManager(QObject *parent) :
+BundleManager::BundleManager(const QString& themeDirPath, QObject *parent) :
     QObject(parent),
     d(new BundleManagerPrivate)
 {
-    d->themeManager = new ThemeManager("redcar-bundles/Themes", this);
+    d->themeDirPath = themeDirPath;
 
     // XXX
-    d->themeManager->readThemeFile("Espresso.tmTheme");
+    readThemeFile("Espresso.tmTheme");
 }
 
 BundleManager::~BundleManager()
@@ -30,9 +31,9 @@ BundleManager::~BundleManager()
     delete d;
 }
 
-ThemeManager* BundleManager::themeManager() const
+Theme BundleManager::theme() const
 {
-    return d->themeManager;
+    return d->theme;
 }
 
 void BundleManager::readBundles(const QString &path)
@@ -64,11 +65,17 @@ void BundleManager::readBundles(const QString &path)
 
 Highlighter* BundleManager::getHighlighterForExtension(const QString& extension, QTextDocument* document)
 {
-    Highlighter* highlighter = new Highlighter(document, d->themeManager);
+    Highlighter* highlighter = new Highlighter(document, this);
 
     if (d->bundles.contains(extension)) {
         highlighter->readSyntaxFile(d->bundles.value(extension));
     }
 
     return highlighter;
+}
+
+void BundleManager::readThemeFile(const QString& themeFile)
+{
+    d->theme.readThemeFile(d->themeDirPath + "/" + themeFile);
+    emit themeChanged(d->theme);
 }

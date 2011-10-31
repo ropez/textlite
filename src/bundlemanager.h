@@ -3,7 +3,7 @@
 
 #include <QObject>
 
-class ThemeManager;
+class Theme;
 class Highlighter;
 class QTextDocument;
 
@@ -13,19 +13,20 @@ class BundleManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit BundleManager(QObject *parent = 0);
+    explicit BundleManager(const QString& themeDirPath, QObject *parent = 0);
     ~BundleManager();
 
-    // FIXME Merge ThemeManager into BundleManager
-    ThemeManager* themeManager() const;
+    Theme theme() const;
 
     void readBundles(const QString& path);
 
     Highlighter* getHighlighterForExtension(const QString& extension, QTextDocument* document);
 
 signals:
+    void themeChanged(const Theme& theme);
 
 public slots:
+    void readThemeFile(const QString& themeFile);
 
 private:
     BundleManagerPrivate* d;

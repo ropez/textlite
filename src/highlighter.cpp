@@ -1,5 +1,6 @@
 #include "highlighter.h"
 #include "plistreader.h"
+#include "bundlemanager.h"
 
 #include <QTextCharFormat>
 #include <QRegExp>
@@ -152,41 +153,11 @@ QTextCharFormat Theme::mergeFormat(const QString &name, const QTextCharFormat &b
     return merged;
 }
 
-class ThemeManagerPrivate
-{
-    friend class ThemeManager;
-
-    QString themeDirPath;
-    Theme theme;
-};
-
-ThemeManager::ThemeManager(const QString& themeDirPath, QObject *parent) :
-    QObject(parent),
-    d(new ThemeManagerPrivate)
-{
-    d->themeDirPath = themeDirPath;
-}
-
-ThemeManager::~ThemeManager()
-{
-}
-
-Theme ThemeManager::theme() const
-{
-    return d->theme;
-}
-
-void ThemeManager::readThemeFile(const QString& themeFile)
-{
-    d->theme.readThemeFile(d->themeDirPath + "/" + themeFile);
-    emit themeChanged(d->theme);
-}
-
 class HighlighterPrivate
 {
     friend class Highlighter;
 
-    ThemeManager* themeManager;
+    BundleManager* bundleManager;
 
     RulePtr root;
     QList<RulePtr> all;
@@ -295,13 +266,13 @@ void HighlighterPrivate::resolveChildRules(RulePtr parentRule)
     }
 }
 
-Highlighter::Highlighter(QTextDocument* document, ThemeManager *themeManager) :
+Highlighter::Highlighter(QTextDocument* document, BundleManager *bundleManager) :
     QSyntaxHighlighter(document),
     d(new HighlighterPrivate)
 {
-    d->themeManager = themeManager;
-    d->theme = d->themeManager->theme();
-    connect(d->themeManager, SIGNAL(themeChanged(Theme)), this, SLOT(setTheme(Theme)));
+    d->bundleManager = bundleManager;
+    d->theme = d->bundleManager->theme();
+    connect(d->bundleManager, SIGNAL(themeChanged(Theme)), this, SLOT(setTheme(Theme)));
 }
 
 Highlighter::~Highlighter()

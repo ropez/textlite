@@ -24,7 +24,7 @@ Window::Window(QWidget *parent) :
     editor->setReadOnly(true);
     editor->setWordWrapMode(QTextOption::NoWrap);
 
-    bundleManager = new BundleManager(this);
+    bundleManager = new BundleManager("redcar-bundles/Themes", this);
     bundleManager->readBundles("redcar-bundles/Bundles");
 
     watcher = new QFileSystemWatcher(this);
@@ -32,7 +32,7 @@ Window::Window(QWidget *parent) :
     reloadTimer->setSingleShot(true);
 
     connect(navigator, SIGNAL(activated(QString)), this, SLOT(setFileName(QString)));
-    connect(navigator, SIGNAL(themeChange(QString)), bundleManager->themeManager(), SLOT(readThemeFile(QString)));
+    connect(navigator, SIGNAL(themeChange(QString)), bundleManager, SLOT(readThemeFile(QString)));
     connect(editor, SIGNAL(textChanged()), this, SLOT(saveFile()));
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(readFileLater(QString)));
     connect(reloadTimer, SIGNAL(timeout()), this, SLOT(readPendingFiles()));
