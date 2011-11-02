@@ -80,7 +80,7 @@ int _Hash(const QStack<ContextItem>& stack) {
 
 struct Context : public QTextBlockUserData {
     QStack<ContextItem> stack;
-    QStringList scope;
+    QStack<QString> scope;
 };
 
 QString formatEndPattern(const QString& fmt, const Match& beginMatch) {
@@ -145,13 +145,14 @@ QTextCharFormat Theme::format(const QString& name) const
     return data.value(name);
 }
 
-QStringList validSelectors(const QStringList& scope)
+QStringList validSelectors(const QStack<QString>& scope)
 {
     if (scope.isEmpty())
         return QStringList() << "";
 
-    QString last = scope.last();
-    QStringList prefixes = validSelectors(scope.mid(0, scope.length()-1));
+    QStack<QString> rest = scope;
+    QString last = rest.pop();
+    QStringList prefixes = validSelectors(rest);
     QStringList result;
     QStringList tokens = last.split(".");
     while (!tokens.isEmpty()) {
@@ -166,7 +167,7 @@ QStringList validSelectors(const QStringList& scope)
     return result;
 }
 
-QTextCharFormat Theme::findFormat(const QStringList& scope) const
+QTextCharFormat Theme::findFormat(const QStack<QString>& scope) const
 {
     QStringListIterator it(validSelectors(scope));
     while (it.hasNext()) {
@@ -372,7 +373,7 @@ void Highlighter::highlightBlock(const QString &text)
         return;
 
     QStack<ContextItem> contextStack;
-    QStringList scope;
+    QStack<QString> scope;
     QTextBlock prevBlock = currentBlock().previous();
     if (prevBlock.userData()) {
         Context* ctx = static_cast<Context*>(prevBlock.userData());
@@ -426,12 +427,12 @@ void Highlighter::highlightBlock(const QString &text)
         // Leave nested context
         if (foundMatchType == End) {
             contextStack.pop();
-            scope.removeLast();
+            scope.pop();
         }
 
         Q_ASSERT(base + foundMatch.pos() <= end);
 
-        scope.append(foundRule->name);
+        scope.push(foundRule->name);
         setFormat(foundMatch.pos(), foundMatch.len(), d->theme.findFormat(scope));
 
         QMap<int, RulePtr> captures;
@@ -454,13 +455,13 @@ void Highlighter::highlightBlock(const QString &text)
                     Q_ASSERT(foundMatch.pos(c) >= foundMatch.pos());
                     Q_ASSERT(foundMatch.pos(c) + foundMatch.len(c) <= foundMatch.pos() + foundMatch.len());
 
-                    scope.append(captures[c]->name);
+                    scope.push(captures[c]->name);
                     setFormat(foundMatch.pos(c), foundMatch.len(c), d->theme.findFormat(scope));
-                    scope.removeLast();
+                    scope.pop();
                 }
             }
         }
-        scope.removeLast();
+        scope.pop();
 
         // Enter nested context
         if (foundMatchType == Begin) {
@@ -470,7 +471,7 @@ void Highlighter::highlightBlock(const QString &text)
             item.formattedEndPattern = formatEndPattern(foundRule->endPattern, foundMatch);
             item.end.setPattern(item.formattedEndPattern);
             contextStack.push(item);
-            scope.append(foundRule->contentName);
+            scope.push(foundRule->contentName);
         }
 
         index = base + foundMatch.pos() + foundMatch.len();

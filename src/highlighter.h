@@ -3,6 +3,7 @@
 
 #include <QSyntaxHighlighter>
 #include <QScopedPointer>
+#include <QStack>
 
 class BundleManager;
 class HighlighterPrivate;
@@ -20,7 +21,7 @@ public:
       "string.koko","pun.ruby" => "string.koko pun.ruby", "string pun.ruby" -> "pun.ruby" -> "string pun" -> "pun" -> "string" -> ""
       "a", "b", "c" => "a b c" -> "b c" -> "a c" -> "c" -> "a b" -> "b" -> "a" -> ""
       */
-    QTextCharFormat findFormat(const QStringList& scope) const;
+    QTextCharFormat findFormat(const QStack<QString>& scope) const;
 
 private:
     QHash<QString, QTextCharFormat> data;
