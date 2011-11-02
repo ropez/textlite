@@ -196,7 +196,7 @@ class HighlighterPrivate
     void resolveChildRules(RulePtr parentRule);
 
     void searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
-                        int& foundPos, RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch);
+                        RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch);
 };
 
 QMap<int, RulePtr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData)
@@ -331,7 +331,7 @@ void Highlighter::readSyntaxFile(const QString& syntaxFile)
 }
 
 void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
-                                        int& foundPos, RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch)
+                                        RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch)
 {
     const int offset = index - base;
 
@@ -339,8 +339,7 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
         if (rule->begin.isValid()) {
             Match match;
             if (rule->begin.search(base, end, index, end, match)) {
-                if (foundMatch.isEmpty() || match.pos() < foundPos) {
-                    foundPos = match.pos();
+                if (foundMatch.isEmpty() || match.pos() < foundMatch.pos()) {
                     foundRule = rule;
                     foundMatchType = Begin;
                     foundMatch.swap(match);
@@ -349,19 +348,21 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
         } else if (rule->match.isValid()) {
             Match match;
             if (rule->match.search(base, end, index, end, match)) {
-                if (foundMatch.isEmpty() || match.pos() < foundPos) {
-                    foundPos = match.pos();
+                if (foundMatch.isEmpty() || match.pos() < foundMatch.pos()) {
                     foundRule = rule;
                     foundMatchType = Normal;
                     foundMatch.swap(match);
                 }
             }
         } else {
-            searchPatterns(rule, index, end, base, foundPos, foundRule, foundMatchType, foundMatch);
+            searchPatterns(rule, index, end, base, foundRule, foundMatchType, foundMatch);
         }
-        Q_ASSERT(foundPos >= offset);
-        if (foundPos == offset)
-            break; // Don't need to continue
+
+        if (!foundMatch.isEmpty()) {
+            Q_ASSERT(foundMatch.pos() >= offset);
+            if (foundMatch.pos() == offset)
+                break; // Don't need to continue
+        }
     }
 }
 
@@ -390,7 +391,6 @@ void Highlighter::highlightBlock(const QString &text)
         Q_ASSERT(contextStack.size() > 0);
 
         const int offset = index - base;
-        int foundPos = text.length();
 
         RulePtr foundRule;
         MatchType foundMatchType = Normal;
@@ -403,24 +403,25 @@ void Highlighter::highlightBlock(const QString &text)
                 RulePtr rule = context.rule;
                 Match match;
                 if (context.end.search(base, end, index, end, match)) {
-                    foundPos = match.pos();
                     foundRule = rule;
                     foundMatchType = End;
                     foundMatch.swap(match);
                 }
             }
 
-            d->searchPatterns(context.rule, index, end, base, foundPos, foundRule, foundMatchType, foundMatch);
-        }
-
-        // Highlight skipped section
-        if (foundPos != offset) {
-            setFormat(offset, foundPos - offset, d->theme.findFormat(scope));
+            d->searchPatterns(context.rule, index, end, base, foundRule, foundMatchType, foundMatch);
         }
 
         // Did we find anything to highlight?
-        if (foundMatch.isEmpty())
+        if (foundMatch.isEmpty()) {
+            setFormat(offset, text.length() - offset, d->theme.findFormat(scope));
             break;
+        }
+
+        // Highlight skipped section
+        if (foundMatch.pos() != offset) {
+            setFormat(offset, foundMatch.pos() - offset, d->theme.findFormat(scope));
+        }
 
         // Leave nested context
         if (foundMatchType == End) {
@@ -428,7 +429,7 @@ void Highlighter::highlightBlock(const QString &text)
             scope.removeLast();
         }
 
-        Q_ASSERT(base + foundPos <= end);
+        Q_ASSERT(base + foundMatch.pos() <= end);
 
         scope.append(foundRule->name);
         setFormat(foundMatch.pos(), foundMatch.len(), d->theme.findFormat(scope));
