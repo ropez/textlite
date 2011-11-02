@@ -135,7 +135,7 @@ void Theme::readThemeFile(const QString &themeFile)
         }
         QString scopes = itemData.value("scope").toString();
         foreach (QString scope, scopes.split(",")) {
-            data[scope.trimmed()] = format;
+            data[scope.simplified()] = format;
         }
     }
 }
