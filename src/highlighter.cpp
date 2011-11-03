@@ -92,6 +92,20 @@ QString formatEndPattern(const QString& fmt, const Match& beginMatch) {
     }
     return result;
 }
+
+QColor parseThemeColor(const QString& hex)
+{
+    QRegExp exp("#([\\w\\d]{6})([\\w\\d]{2})");
+    if (exp.exactMatch(hex)) {
+        bool ok = false;
+        QString rgbahex = exp.cap(2) + exp.cap(1);
+        QRgb rgba = rgbahex.toUInt(&ok, 16);
+        if (ok) {
+            return QColor::fromRgba(rgba);
+        }
+    }
+    return QColor(hex);
+}
 }
 
 void Theme::readThemeFile(const QString &themeFile)
@@ -110,11 +124,11 @@ void Theme::readThemeFile(const QString &themeFile)
             settingsIter.next();
             QString key = settingsIter.key();
             if (key == "foreground") {
-                QString color = settingsIter.value().toString();
-                format.setForeground(QColor(color));
+                QString hex = settingsIter.value().toString();
+                format.setForeground(parseThemeColor(hex));
             } else if (key == "background") {
-                QString color = settingsIter.value().toString();
-                format.setBackground(QColor(color));
+                QString hex = settingsIter.value().toString();
+                format.setBackground(parseThemeColor(hex));
             } else if (key == "fontStyle") {
                 QString style = settingsIter.value().toString();
                 if (style.isEmpty()) {
@@ -128,7 +142,7 @@ void Theme::readThemeFile(const QString &themeFile)
                 }
             } else if (key == "caret") {
                 QString color = settingsIter.value().toString();
-                format.setProperty(QTextFormat::UserProperty, QBrush(QColor(color)));
+                format.setProperty(QTextFormat::UserProperty, QBrush(parseThemeColor(color)));
             } else {
                 qDebug() << "Unknown key in theme:" << key << "=>" << settingsIter.value();
             }
