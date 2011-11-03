@@ -13,7 +13,14 @@ public:
     void readThemeFile(const QString& themeFile);
 
     QTextCharFormat format(const QString& name) const;
-    QTextCharFormat mergeFormat(const QString& name, const QTextCharFormat& baseFormat) const;
+
+    /**
+      "string" => "string" -> ""
+      "string.quoted" => "string.quited" -> "string" -> ""
+      "string.koko","pun.ruby" => "string.koko pun.ruby", "string pun.ruby" -> "pun.ruby" -> "string pun" -> "pun" -> "string" -> ""
+      "a", "b", "c" => "a b c" -> "b c" -> "a c" -> "c" -> "a b" -> "b" -> "a" -> ""
+      */
+    QTextCharFormat findFormat(const QStringList& scope) const;
 
 private:
     QHash<QString, QTextCharFormat> data;

@@ -80,6 +80,7 @@ int _Hash(const QStack<ContextItem>& stack) {
 
 struct Context : public QTextBlockUserData {
     QStack<ContextItem> stack;
+    QStringList scope;
 };
 
 QString formatEndPattern(const QString& fmt, const Match& beginMatch) {
@@ -144,15 +145,37 @@ QTextCharFormat Theme::format(const QString& name) const
     return data.value(name);
 }
 
-QTextCharFormat Theme::mergeFormat(const QString &name, const QTextCharFormat &baseFormat) const
+QStringList validSelectors(const QStringList& scope)
 {
-    QTextCharFormat merged = baseFormat;
-    QStringList names = name.split(".");
-    for (int i = 0; i < names.size(); i++) {
-        QString n = QStringList(names.mid(0, i+1)).join(".");
-        merged.merge(format(n));
+    if (scope.isEmpty())
+        return QStringList() << "";
+
+    QString last = scope.last();
+    QStringList prefixes = validSelectors(scope.mid(0, scope.length()-1));
+    QStringList result;
+    QStringList tokens = last.split(".");
+    while (!tokens.isEmpty()) {
+        QString joined = tokens.join(".");
+        for (int i = 0; i < prefixes.length() - 1; i++) {
+            result << prefixes[i] + " " + joined;
+        }
+        result << joined;
+        tokens.removeLast();
     }
-    return merged;
+    result += prefixes;
+    return result;
+}
+
+QTextCharFormat Theme::findFormat(const QStringList& scope) const
+{
+    QStringListIterator it(validSelectors(scope));
+    while (it.hasNext()) {
+        QString selector = it.next();
+        if (data.contains(selector)) {
+            return data[selector];
+        }
+    }
+    return QTextCharFormat();
 }
 
 class HighlighterPrivate
@@ -348,13 +371,16 @@ void Highlighter::highlightBlock(const QString &text)
         return;
 
     QStack<ContextItem> contextStack;
+    QStringList scope;
     QTextBlock prevBlock = currentBlock().previous();
     if (prevBlock.userData()) {
         Context* ctx = static_cast<Context*>(prevBlock.userData());
         contextStack = ctx->stack;
+        scope = ctx->scope;
     } else {
         contextStack.push(ContextItem(d->root));
     }
+
 
     const iter_t base = text.begin();
     const iter_t end = text.end();
@@ -362,7 +388,6 @@ void Highlighter::highlightBlock(const QString &text)
     iter_t index = base;
     while (true) {
         Q_ASSERT(contextStack.size() > 0);
-        ContextItem& context = contextStack.top();
 
         const int offset = index - base;
         int foundPos = text.length();
@@ -371,46 +396,42 @@ void Highlighter::highlightBlock(const QString &text)
         MatchType foundMatchType = Normal;
         Match foundMatch;
 
-        if (context.end.isValid()) {
-            RulePtr rule = context.rule;
-            Match match;
-            if (context.end.search(base, end, index, end, match)) {
-                foundPos = match.pos();
-                foundRule = rule;
-                foundMatchType = End;
-                foundMatch.swap(match);
-            }
-        }
+        {
+            ContextItem& context = contextStack.top();
 
-        d->searchPatterns(context.rule, index, end, base, foundPos, foundRule, foundMatchType, foundMatch);
+            if (context.end.isValid()) {
+                RulePtr rule = context.rule;
+                Match match;
+                if (context.end.search(base, end, index, end, match)) {
+                    foundPos = match.pos();
+                    foundRule = rule;
+                    foundMatchType = End;
+                    foundMatch.swap(match);
+                }
+            }
+
+            d->searchPatterns(context.rule, index, end, base, foundPos, foundRule, foundMatchType, foundMatch);
+        }
 
         // Highlight skipped section
         if (foundPos != offset) {
-            QTextCharFormat contentFormat = d->theme.mergeFormat(context.rule->contentName, d->theme.format(""));
-            setFormat(offset, foundPos - offset, contentFormat);
+            setFormat(offset, foundPos - offset, d->theme.findFormat(scope));
         }
 
         // Did we find anything to highlight?
         if (foundMatch.isEmpty())
             break;
 
+        // Leave nested context
         if (foundMatchType == End) {
             contextStack.pop();
+            scope.removeLast();
         }
 
         Q_ASSERT(base + foundPos <= end);
-        QTextCharFormat contentFormat = d->theme.mergeFormat(contextStack.top().rule->contentName, d->theme.format(""));
-        QTextCharFormat foundFormat = d->theme.mergeFormat(foundRule->name, contentFormat);
-        setFormat(foundMatch.pos(), foundMatch.len(), foundFormat);
 
-        if (foundMatchType == Begin) {
-            // Compile the regular expression that will end this context,
-            // and may include captures from the found match
-            ContextItem item(foundRule);
-            item.formattedEndPattern = formatEndPattern(foundRule->endPattern, foundMatch);
-            item.end.setPattern(item.formattedEndPattern);
-            contextStack.push(item);
-        }
+        scope.append(foundRule->name);
+        setFormat(foundMatch.pos(), foundMatch.len(), d->theme.findFormat(scope));
 
         QMap<int, RulePtr> captures;
         switch (foundMatchType) {
@@ -431,16 +452,33 @@ void Highlighter::highlightBlock(const QString &text)
                 if (captures.contains(c)) {
                     Q_ASSERT(foundMatch.pos(c) >= foundMatch.pos());
                     Q_ASSERT(foundMatch.pos(c) + foundMatch.len(c) <= foundMatch.pos() + foundMatch.len());
-                    setFormat(foundMatch.pos(c), foundMatch.len(c), d->theme.mergeFormat(captures[c]->name, foundFormat));
+
+                    scope.append(captures[c]->name);
+                    setFormat(foundMatch.pos(c), foundMatch.len(c), d->theme.findFormat(scope));
+                    scope.removeLast();
                 }
             }
         }
+        scope.removeLast();
+
+        // Enter nested context
+        if (foundMatchType == Begin) {
+            // Compile the regular expression that will end this context,
+            // and may include captures from the found match
+            ContextItem item(foundRule);
+            item.formattedEndPattern = formatEndPattern(foundRule->endPattern, foundMatch);
+            item.end.setPattern(item.formattedEndPattern);
+            contextStack.push(item);
+            scope.append(foundRule->contentName);
+        }
+
         index = base + foundMatch.pos() + foundMatch.len();
     }
 
     if (contextStack.size() > 1) {
         Context* ctx = new Context;
         ctx->stack = contextStack;
+        ctx->scope = scope;
         setCurrentBlockUserData(ctx);
         setCurrentBlockState(_Hash(ctx->stack));
     } else {
