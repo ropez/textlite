@@ -130,15 +130,18 @@ void Theme::readThemeFile(const QString &themeFile)
                 QString hex = settingsIter.value().toString();
                 format.setBackground(parseThemeColor(hex));
             } else if (key == "fontStyle") {
-                QString style = settingsIter.value().toString();
-                if (style.isEmpty()) {
-                    format.setFontWeight(50);
-                } else if (style == "bold") {
-                    format.setFontWeight(75);
-                } else if (style == "italic") {
-                    format.setFontItalic(true);
-                } else {
-                    qDebug() << "Unknown font style:" << style;
+                QString styles = settingsIter.value().toString();
+                QStringList list = styles.split(" ", QString::SkipEmptyParts);
+                foreach (const QString& style, list) {
+                    if (style == "bold") {
+                        format.setFontWeight(75);
+                    } else if (style == "italic") {
+                        format.setFontItalic(true);
+                    } else if (style == "underline") {
+                        format.setFontUnderline(true);
+                    } else {
+                        qDebug() << "Unknown font style:" << style;
+                    }
                 }
             } else if (key == "caret") {
                 QString color = settingsIter.value().toString();
