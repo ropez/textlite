@@ -13,7 +13,8 @@ class BundleManagerPrivate
     Theme theme;
     QString themeDirPath;
 
-    QMap<QString, QString> bundles;
+    QMap<QString, QString> fileTypes;
+    QMap<QString, QVariantMap> syntaxData;
 };
 
 BundleManager::BundleManager(const QString& themeDirPath, QObject *parent) :
@@ -50,21 +51,28 @@ void BundleManager::readBundles(const QString &path)
                 QString syntaxFile = syntaxDir.filePath(file);
                 PlistReader reader;
                 QVariantMap syntaxData = reader.read(syntaxFile).toMap();
+                QString scopeName = syntaxData.value("scopeName").toString();
+                d->syntaxData[scopeName] = syntaxData;
                 QVariantList fileTypes = syntaxData.value("fileTypes").toList();
                 foreach (QVariant type, fileTypes) {
-                    d->bundles[type.toString()] = syntaxFile;
+                    d->fileTypes[type.toString()] = scopeName;
                 }
             }
         }
     }
 }
 
+QVariantMap BundleManager::getSyntaxData(const QString& scopeName) const
+{
+    return d->syntaxData[scopeName];
+}
+
 Highlighter* BundleManager::getHighlighterForExtension(const QString& extension, QTextDocument* document)
 {
     Highlighter* highlighter = new Highlighter(document, this);
 
-    if (d->bundles.contains(extension)) {
-        highlighter->readSyntaxFile(d->bundles.value(extension));
+    if (d->fileTypes.contains(extension)) {
+        highlighter->readSyntaxData(d->fileTypes.value(extension));
     }
 
     return highlighter;

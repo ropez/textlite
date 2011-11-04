@@ -6,6 +6,7 @@
 #include <QStack>
 
 class BundleManager;
+class GrammarPrivate;
 class HighlighterPrivate;
 
 class Theme
@@ -27,6 +28,21 @@ private:
     QHash<QString, QTextCharFormat> data;
 };
 
+class Grammar
+{
+public:
+    Grammar();
+    ~Grammar();
+
+    void readSyntaxData(const QVariantMap& syntaxData);
+
+private:
+    friend class Highlighter;
+    friend class HighlighterPrivate;
+
+    QSharedPointer<GrammarPrivate> d;
+};
+
 class Highlighter : public QSyntaxHighlighter
 {
     Q_OBJECT
@@ -36,7 +52,7 @@ public:
 
 public slots:
     void setTheme(const Theme& theme);
-    void readSyntaxFile(const QString& syntaxFile);
+    void readSyntaxData(const QString& scopeName);
 
 protected:
     void highlightBlock(const QString &text);

@@ -196,6 +196,45 @@ QTextCharFormat Theme::findFormat(const QStack<QString>& scope) const
     return QTextCharFormat();
 }
 
+class GrammarPrivate
+{
+    friend class Grammar;
+    friend class Highlighter;
+    friend class HighlighterPrivate;
+
+    RulePtr root;
+    QList<RulePtr> all;
+    QMap<QString, RulePtr> repository;
+
+    QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData);
+    RulePtr makeRule(const QVariantMap& ruleData);
+    QList<WeakRulePtr> makeRuleList(const QVariantList& ruleListData);
+};
+
+Grammar::Grammar() :
+    d(new GrammarPrivate)
+{
+}
+
+Grammar::~Grammar()
+{
+}
+
+void Grammar::readSyntaxData(const QVariantMap& syntaxData)
+{
+    QVariantMap rootData;
+    rootData["patterns"] = syntaxData.value("patterns");
+    d->root = d->makeRule(rootData);
+
+    QVariantMap repositoryData = syntaxData.value("repository").toMap();
+    QMapIterator<QString, QVariant> iter(repositoryData);
+    while (iter.hasNext()) {
+        iter.next();
+        QVariantMap ruleData = iter.value().toMap();
+        d->repository["#" + iter.key()] = d->makeRule(ruleData);
+    }
+}
+
 class HighlighterPrivate
 {
     friend class Highlighter;
@@ -203,21 +242,18 @@ class HighlighterPrivate
     BundleManager* bundleManager;
 
     RulePtr root;
-    QList<RulePtr> all;
-    QMap<QString, RulePtr> repository;
+    Grammar grammar;
+    QMap<QString, Grammar> grammars;
 
     Theme theme;
 
-    QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData);
-    RulePtr makeRule(const QVariantMap& ruleData);
-    QList<WeakRulePtr> makeRuleList(const QVariantList& ruleListData);
-    void resolveChildRules(RulePtr parentRule);
+    void resolveChildRules(RulePtr parentRule, const Grammar& grammar);
 
     void searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
                         RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch);
 };
 
-QMap<int, RulePtr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesData)
+QMap<int, RulePtr> GrammarPrivate::makeCaptures(const QVariantMap& capturesData)
 {
     QMap<int, RulePtr> captures;
     QMapIterator<QString, QVariant> iter(capturesData);
@@ -230,7 +266,7 @@ QMap<int, RulePtr> HighlighterPrivate::makeCaptures(const QVariantMap& capturesD
     return captures;
 }
 
-RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData)
+RulePtr GrammarPrivate::makeRule(const QVariantMap& ruleData)
 {
     RulePtr rule(new RuleData);
     this->all.append(rule);
@@ -273,7 +309,7 @@ RulePtr HighlighterPrivate::makeRule(const QVariantMap& ruleData)
     return rule;
 }
 
-QList<WeakRulePtr> HighlighterPrivate::makeRuleList(const QVariantList& ruleListData)
+QList<WeakRulePtr> GrammarPrivate::makeRuleList(const QVariantList& ruleListData)
 {
     QList<WeakRulePtr> rules;
     QListIterator<QVariant> iter(ruleListData);
@@ -284,7 +320,7 @@ QList<WeakRulePtr> HighlighterPrivate::makeRuleList(const QVariantList& ruleList
     return rules;
 }
 
-void HighlighterPrivate::resolveChildRules(RulePtr parentRule)
+void HighlighterPrivate::resolveChildRules(RulePtr parentRule, const Grammar& grammar)
 {
     if (parentRule->visited) return;
     parentRule->visited = true;
@@ -293,19 +329,33 @@ void HighlighterPrivate::resolveChildRules(RulePtr parentRule)
     while (iter.hasNext()) {
         RulePtr rule = iter.next();
         if (rule->include != QString()) {
-            if (rule->include == "$self") {
-                rule = this->root;
+            if (rule->include == "$base") {
+                iter.setValue(this->root);
+            } else if (rule->include == "$self") {
+                iter.setValue(grammar.d->root);
+            } else if (grammar.d->repository.contains(rule->include)) {
+                rule = grammar.d->repository.value(rule->include);
                 iter.setValue(rule);
-            } else if (this->repository.contains(rule->include)) {
-                rule = this->repository.value(rule->include);
-                iter.setValue(rule);
+                resolveChildRules(rule, grammar);
+            } else if (grammars.contains(rule->include)) {
+                iter.setValue(grammars.value(rule->include).d->root);
             } else {
-                qWarning() << "Pattern not in repository" << rule->include;
-                iter.remove();
-                continue;
+                QVariantMap data = bundleManager->getSyntaxData(rule->include);
+                if (!data.isEmpty()) {
+                    Grammar g;
+                    g.readSyntaxData(data);
+                    grammars[rule->include] = g;
+                    rule = g.d->root;
+                    iter.setValue(rule);
+                    resolveChildRules(rule, g);
+                } else {
+                    qWarning() << "Pattern not in repository" << rule->include;
+                    iter.remove();
+                }
             }
+        } else {
+            resolveChildRules(rule, grammar);
         }
-        resolveChildRules(rule);
     }
 }
 
@@ -328,24 +378,11 @@ void Highlighter::setTheme(const Theme& theme)
     rehighlight();
 }
 
-void Highlighter::readSyntaxFile(const QString& syntaxFile)
+void Highlighter::readSyntaxData(const QString& scopeName)
 {
-    PlistReader reader;
-    QVariantMap def = reader.read(syntaxFile).toMap();
-
-    QVariantMap rootData;
-    rootData["patterns"] = def.value("patterns");
-    d->root = d->makeRule(rootData);
-
-    QVariantMap repositoryData = def.value("repository").toMap();
-    QMapIterator<QString, QVariant> iter(repositoryData);
-    while (iter.hasNext()) {
-        iter.next();
-        QVariantMap ruleData = iter.value().toMap();
-        d->repository["#" + iter.key()] = d->makeRule(ruleData);
-    }
-
-    d->resolveChildRules(d->root);
+    d->grammar.readSyntaxData(d->bundleManager->getSyntaxData(scopeName));
+    d->root = d->grammar.d->root;
+    d->resolveChildRules(d->root, d->grammar);
 }
 
 void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,

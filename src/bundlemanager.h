@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QScopedPointer>
+#include <QVariant>
 
 class Theme;
 class Highlighter;
@@ -20,6 +21,8 @@ public:
     Theme theme() const;
 
     void readBundles(const QString& path);
+
+    QVariantMap getSyntaxData(const QString& scopeName) const;
 
     Highlighter* getHighlighterForExtension(const QString& extension, QTextDocument* document);
 
