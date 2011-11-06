@@ -9,9 +9,14 @@ class BundleManager;
 class GrammarPrivate;
 class HighlighterPrivate;
 
+class ThemePrivate;
+
 class Theme
 {
 public:
+    Theme();
+    ~Theme();
+
     void readThemeFile(const QString& themeFile);
 
     QTextCharFormat format(const QString& name) const;
@@ -25,7 +30,7 @@ public:
     QTextCharFormat findFormat(const QStack<QString>& scope) const;
 
 private:
-    QHash<QString, QTextCharFormat> data;
+    QSharedPointer<ThemePrivate> d;
 };
 
 class Grammar

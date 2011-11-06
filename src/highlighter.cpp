@@ -108,9 +108,98 @@ QColor parseThemeColor(const QString& hex)
 }
 }
 
+class ScopeSelector : public QStack<QStringList>
+{
+public:
+    ScopeSelector(const QStack<QString>& other)
+    {
+        QVectorIterator<QString> it(other);
+        while (it.hasNext()) {
+            QString element = it.next();
+            if (!element.isEmpty()) {
+                push(element.split("."));
+            }
+        }
+    }
+
+    ScopeSelector(const QString& selector)
+    {
+        if (selector.isEmpty())
+            return;
+
+        QStringListIterator it(selector.simplified().split(" "));
+        while (it.hasNext()) {
+            push(it.next().split("."));
+        }
+    }
+
+    bool matches(const ScopeSelector& scope);
+};
+
+bool ScopeSelector::matches(const ScopeSelector& scope)
+{
+    QStack<QStringList> rest = scope;
+    for (int i = 0; i < size(); i++) {
+        QStringList s = at(size() - 1 - i);
+        while (true) {
+            if (rest.isEmpty())
+                return false;
+            QStringList x = rest.pop().mid(0, s.length());
+            if (x == s)
+                break;
+        }
+    }
+    return true;
+}
+
+bool operator<(const ScopeSelector& lhs, const ScopeSelector& rhs)
+{
+    if (lhs == rhs)
+        return false;
+
+    int size = qMax(lhs.size(), rhs.size());
+    for (int i = 0; i < size; i++) {
+        if (i >= lhs.size())
+            return false;
+        if (i >= rhs.size())
+            return true;
+        QStringList l = lhs[lhs.size() - 1 - i];
+        QStringList r = rhs[rhs.size() - 1 - i];
+        if (l != r) {
+            int sz = qMax(l.size(), r.size());
+            for (int j = 0; j < sz; j++) {
+                if (j >= l.size())
+                    return false;
+                if (j >= r.size())
+                    return true;
+                if (l[j] != r[j])
+                    return l[j] < r[j];
+            }
+            Q_ASSERT(false);
+        }
+    }
+    return false;
+}
+
+class ThemePrivate
+{
+    friend class Theme;
+
+    QMap<ScopeSelector, QTextCharFormat> data;
+};
+
+Theme::Theme() :
+    d(new ThemePrivate)
+{
+}
+
+Theme::~Theme()
+{
+}
+
 void Theme::readThemeFile(const QString &themeFile)
 {
-    data.clear();
+    d->data.clear();
     PlistReader reader;
     QVariantMap def = reader.read(themeFile).toMap();
     QVariantList settingsListData = def.value("settings").toList();
@@ -150,50 +239,34 @@ void Theme::readThemeFile(const QString &themeFile)
                 qDebug() << "Unknown key in theme:" << key << "=>" << settingsIter.value();
             }
         }
+        // XXX What to do when scope is not given?
+        if (itemData.contains("name") && !itemData.contains("scope"))
+            continue;
         QString scopes = itemData.value("scope").toString();
         foreach (QString scope, scopes.split(",")) {
-            data[scope.simplified()] = format;
+            d->data[scope.trimmed()] = format;
         }
     }
 }
 
 QTextCharFormat Theme::format(const QString& name) const
 {
-    return data.value(name);
-}
-
-QStringList validSelectors(const QStack<QString>& scope)
-{
-    if (scope.isEmpty())
-        return QStringList() << "";
-
-    QStack<QString> rest = scope;
-    QString last = rest.pop();
-    QStringList prefixes = validSelectors(rest);
-    QStringList result;
-    QStringList tokens = last.split(".");
-    while (!tokens.isEmpty()) {
-        QString joined = tokens.join(".");
-        for (int i = 0; i < prefixes.length() - 1; i++) {
-            result << prefixes[i] + " " + joined;
-        }
-        result << joined;
-        tokens.removeLast();
-    }
-    result += prefixes;
-    return result;
+    return d->data.value(name);
 }
 
 QTextCharFormat Theme::findFormat(const QStack<QString>& scope) const
 {
-    QStringListIterator it(validSelectors(scope));
-    while (it.hasNext()) {
-        QString selector = it.next();
-        if (data.contains(selector)) {
-            return data[selector];
+    QTextCharFormat format;
+    QMap<ScopeSelector, QTextCharFormat>::const_iterator it;
+    for (it = d->data.begin(); it != d->data.end(); ++it) {
+        ScopeSelector selector = it.key();
+        if (selector.matches(scope)) {
+            QTextCharFormat old = format;
+            format = it.value();
+            format.merge(old);
         }
     }
-    return QTextCharFormat();
+    return format;
 }
 
 class GrammarPrivate
