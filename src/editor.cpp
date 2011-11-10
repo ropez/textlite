@@ -45,6 +45,11 @@ void Editor::keyPressEvent(QKeyEvent* e)
     if (e->key() == Qt::Key_Return) {
         QTextEdit::keyPressEvent(e);
         doIndent(textCursor());
+    } else if (e->key() == Qt::Key_Tab) {
+        QTextCursor c = textCursor();
+        do {
+            c.insertText(" ");
+        } while (c.positionInBlock() % 4);
     } else {
         QTextEdit::keyPressEvent(e);
     }
