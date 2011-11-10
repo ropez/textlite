@@ -9,6 +9,14 @@ class Editor : public QTextEdit
 public:
     explicit Editor(QWidget *parent = 0);
 
+    void doIndent(QTextCursor c);
+
+public slots:
+    void indentLine();
+
+protected:
+    void keyPressEvent(QKeyEvent* e);
+
 private:
 };
 
