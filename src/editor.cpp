@@ -10,10 +10,18 @@
 Editor::Editor(QWidget *parent) :
     QTextEdit(parent)
 {
-    QAction* action = new QAction(this);
-    action->setShortcut(QKeySequence(tr("Ctrl+I")));
-    connect(action, SIGNAL(triggered()), this, SLOT(indentLine()));
-    addAction(action);
+    {
+        QAction* action = new QAction(this);
+        action->setShortcut(QKeySequence(tr("Ctrl+I")));
+        connect(action, SIGNAL(triggered()), this, SLOT(indentLine()));
+        addAction(action);
+    }
+    {
+        QAction* action = new QAction(this);
+        action->setShortcut(QKeySequence(tr("Ctrl+K")));
+        connect(action, SIGNAL(triggered()), this, SLOT(killLine()));
+        addAction(action);
+    }
 }
 
 bool Editor::currentIndent(const QTextCursor& cursor, int* indent) const
@@ -58,9 +66,30 @@ void Editor::doIndent(QTextCursor c)
     c.endEditBlock();
 }
 
+void Editor::doKillLine(QTextCursor cursor)
+{
+    // Make selection contain whole blocks
+    {
+        int end = cursor.selectionEnd();
+        cursor.setPosition(cursor.selectionStart());
+        cursor.movePosition(QTextCursor::StartOfBlock);
+        cursor.setPosition(end, QTextCursor::KeepAnchor);
+        if (! (cursor.hasSelection() && cursor.atBlockStart())) {
+            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
+        }
+    }
+
+    cursor.removeSelectedText();
+}
+
 void Editor::indentLine()
 {
     doIndent(textCursor());
+}
+
+void Editor::killLine()
+{
+    doKillLine(textCursor());
 }
 
 void Editor::keyPressEvent(QKeyEvent* e)

@@ -11,10 +11,13 @@ public:
 
     bool currentIndent(const QTextCursor& cursor, int* indent) const;
     bool isLeadingWhitespace(const QTextCursor& cursor) const;
+
     void doIndent(QTextCursor c);
+    void doKillLine(QTextCursor cursor);
 
 public slots:
     void indentLine();
+    void killLine();
 
 protected:
     void keyPressEvent(QKeyEvent* e);
