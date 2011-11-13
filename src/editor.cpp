@@ -62,6 +62,20 @@ void Editor::keyPressEvent(QKeyEvent* e)
         do {
             c.insertText(" ");
         } while (c.positionInBlock() % 4);
+    } else if (e->key() == Qt::Key_Backspace && e->modifiers() == Qt::NoModifier) {
+        QTextCursor c = textCursor();
+        if (c.positionInBlock() > 0) {
+            int indent = -1;
+            if (currentIndent(c, &indent) && c.positionInBlock() <= indent) {
+                do {
+                    c.deletePreviousChar();
+                } while (c.positionInBlock() % 4);
+            } else {
+                QTextEdit::keyPressEvent(e);
+            }
+        } else {
+            QTextEdit::keyPressEvent(e);
+        }
     } else {
         QTextEdit::keyPressEvent(e);
     }
