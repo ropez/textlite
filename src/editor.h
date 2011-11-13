@@ -9,6 +9,7 @@ class Editor : public QTextEdit
 public:
     explicit Editor(QWidget *parent = 0);
 
+    bool currentIndent(const QTextCursor& cursor, int* indent) const;
     void doIndent(QTextCursor c);
 
 public slots:

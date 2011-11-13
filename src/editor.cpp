@@ -16,19 +16,31 @@ Editor::Editor(QWidget *parent) :
     addAction(action);
 }
 
+bool Editor::currentIndent(const QTextCursor& cursor, int* indent) const
+{
+    QRegExp exp("^(\\s*)((?=\\S)|$)");
+    if (exp.indexIn(cursor.block().text()) != -1) {
+        *indent = exp.matchedLength();
+        return true;
+    } else {
+        *indent = -1;
+        return false;
+    }
+}
+
 void Editor::doIndent(QTextCursor c)
 {
     c.beginEditBlock();
-    QRegExp exp("^(\\s*)((?=\\S)|$)");
     c.movePosition(QTextCursor::StartOfBlock);
-    QTextBlock block = c.block();
-    if (exp.indexIn(block.text()) != -1) {
-        c.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, exp.matchedLength());
+    int indent = -1;
+    if (currentIndent(c, &indent)) {
+        c.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, indent);
         c.removeSelectedText();
     }
-    while ((block = block.previous()).isValid()) {
-        if (exp.indexIn(block.text()) != -1) {
-            c.insertText(QString(" ").repeated(exp.matchedLength()));
+    QTextCursor p = c;
+    while (p.movePosition(QTextCursor::PreviousBlock)) {
+        if (currentIndent(p, &indent)) {
+            c.insertText(QString(" ").repeated(indent));
             break;
         }
     }
