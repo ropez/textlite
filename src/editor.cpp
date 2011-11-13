@@ -28,6 +28,17 @@ bool Editor::currentIndent(const QTextCursor& cursor, int* indent) const
     }
 }
 
+bool Editor::isLeadingWhitespace(const QTextCursor& cursor) const
+{
+    int indent;
+    if (currentIndent(cursor, &indent)) {
+        int pos = cursor.positionInBlock();
+        if (pos > 0 && pos <= indent)
+            return true;
+    }
+    return false;
+}
+
 void Editor::doIndent(QTextCursor c)
 {
     c.beginEditBlock();
@@ -64,15 +75,10 @@ void Editor::keyPressEvent(QKeyEvent* e)
         } while (c.positionInBlock() % 4);
     } else if (e->key() == Qt::Key_Backspace && e->modifiers() == Qt::NoModifier) {
         QTextCursor c = textCursor();
-        if (c.positionInBlock() > 0) {
-            int indent = -1;
-            if (currentIndent(c, &indent) && c.positionInBlock() <= indent) {
-                do {
-                    c.deletePreviousChar();
-                } while (c.positionInBlock() % 4);
-            } else {
-                QTextEdit::keyPressEvent(e);
-            }
+        if (isLeadingWhitespace(c)) {
+            do {
+                c.deletePreviousChar();
+            } while (c.positionInBlock() % 4);
         } else {
             QTextEdit::keyPressEvent(e);
         }

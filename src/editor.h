@@ -10,6 +10,7 @@ public:
     explicit Editor(QWidget *parent = 0);
 
     bool currentIndent(const QTextCursor& cursor, int* indent) const;
+    bool isLeadingWhitespace(const QTextCursor& cursor) const;
     void doIndent(QTextCursor c);
 
 public slots:
