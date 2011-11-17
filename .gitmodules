@@ -1,3 +1,6 @@
 [submodule "redcar-bundles"]
 	path = redcar-bundles
 	url = git://github.com/redcar/redcar-bundles.git
+[submodule "libqgit2"]
+	path = libqgit2
+	url = git://github.com/ropez/libqgit2
