@@ -35,3 +35,15 @@ FORMS += \
 unix|win32: LIBS += -lonig
 
 
+
+win32:CONFIG(release, debug|release): LIBS += -L$$OUT_PWD/../libqgit2/release/ -llibqgit2
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$OUT_PWD/../libqgit2/debug/ -llibqgit2
+else:symbian: LIBS += -llibqgit2
+else:unix: LIBS += -L$$OUT_PWD/../libqgit2/ -llibqgit2
+
+INCLUDEPATH += $$PWD/../libqgit2/libgit2/include $$PWD/../libqgit2 $$PWD/../libqgit2/src
+DEPENDPATH += $$PWD/../libqgit2
+
+win32:CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../libqgit2/release/libqgit2.lib
+else:win32:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../libqgit2/debug/libqgit2.lib
+else:unix:!symbian: PRE_TARGETDEPS += $$OUT_PWD/../libqgit2/liblibqgit2.a
