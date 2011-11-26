@@ -4,12 +4,13 @@
 #include <qgitrepository.h>
 #include <qgitindex.h>
 #include <qgitindexentry.h>
+#include <qgitexception.h>
 
 #include <QCompleter>
-#include <QFileSystemModel>
 #include <QStringListModel>
 #include <QLineEdit>
 #include <QDir>
+#include <QMessageBox>
 
 #include <QtDebug>
 
@@ -23,29 +24,41 @@ Navigator::Navigator(QWidget *parent) :
 
     connect(ui->comboBox, SIGNAL(returnPressed()), this, SLOT(activate()));
 
-    QCompleter* completer = new QCompleter(this);
-//    QFileSystemModel* model = new QFileSystemModel(completer);
-//    model->setRootPath(QDir::currentPath());
+    try {
+        // Open Git repository
+        QGitRepository repo;
+        repo.discoverAndOpen(QDir::currentPath());
 
-    QStringList gitEntryList;
-    QGitRepository r;
-    if (r.open(".git") != 0) {
-        qWarning() << "Git open failed";
+        // Debugging
+        qDebug() << repo.isHeadDetached();
+        qDebug() << repo.isHeadOrphan();
+        qDebug() << repo.isEmpty();
+        qDebug() << repo.isBare();
+        qDebug() << repo.path();
+        qDebug() << repo.indexPath();
+        qDebug() << repo.databasePath();
+        qDebug() << repo.workDirPath();
+
+        // Read Git index
+        QGitIndex index = repo.index();
+        index.read();
+
+        // Create list of index entries for filename autocompletion
+        QStringList gitEntryList;
+        for (size_t i = 0; i < index.entryCount(); i++) {
+            QGitIndexEntry e = index.get(i);
+            gitEntryList.append(QString(e.path()));
+            qDebug() << e.id().format() << "=>" << e.path();
+        }
+        QStringListModel* model = new QStringListModel(gitEntryList, this);
+
+        // Create completer
+        QCompleter* completer = new QCompleter(this);
+        completer->setModel(model);
+        ui->comboBox->setCompleter(completer);
+    } catch (const QGitException& e) {
+        QMessageBox::critical(this, tr("Git operation failed"), e.message());
     }
-
-    QGitIndex index(r);
-    index.read();
-
-    for (int i = 0; i < index.entryCount(); i++) {
-        QGitIndexEntry e = index.get(i);
-        gitEntryList.append(QString(e.path()));
-        qDebug() << e.id().format() << e.path();
-    }
-    QStringListModel* model = new QStringListModel(gitEntryList, this);
-
-
-    completer->setModel(model);
-    ui->comboBox->setCompleter(completer);
 
     QDir themeDir("redcar-bundles/Themes");
     themeDir.setFilter(QDir::Files);
