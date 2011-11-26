@@ -19,6 +19,7 @@ Window::Window(BundleManager* bman, QWidget *parent) :
     QVBoxLayout *vl = new QVBoxLayout(this);
     editor = new Editor(this);
     vl->addWidget(editor);
+    vl->setMargin(0);
 
     editor->setReadOnly(true);
     editor->setWordWrapMode(QTextOption::NoWrap);
