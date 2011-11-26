@@ -39,6 +39,9 @@ Navigator::Navigator(QWidget *parent) :
         qDebug() << repo.databasePath();
         qDebug() << repo.workDirPath();
 
+        // Change working directory, so that files can be found
+        QDir::setCurrent(repo.workDirPath());
+
         // Read Git index
         QGitIndex index = repo.index();
         index.read();
