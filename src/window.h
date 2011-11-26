@@ -1,9 +1,9 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <QWidget>
-#include <QMap>
-#include <QQueue>
+#include <QtGui/QWidget>
+#include <QtCore/QMap>
+#include <QtCore/QQueue>
 
 class QTextDocument;
 class QFileSystemWatcher;
@@ -18,9 +18,12 @@ class Window : public QWidget
     Q_OBJECT
 public:
     explicit Window(BundleManager* bman, QWidget *parent = 0);
+    ~Window();
+
+public slots:
+    void setFileName(const QString& name);
 
 private slots:
-    void setFileName(const QString& name);
     void saveFile();
     void readFile(const QString& name);
     void readFileLater(const QString& name);

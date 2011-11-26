@@ -77,10 +77,20 @@ Navigator::~Navigator()
     delete ui;
 }
 
+QString Navigator::fileName() const
+{
+    return ui->comboBox->text();
+}
+
 void Navigator::setFileFocus()
 {
     ui->comboBox->setFocus();
     ui->comboBox->selectAll();
+}
+
+void Navigator::setFileName(const QString& fileName)
+{
+    ui->comboBox->setText(fileName);
 }
 
 void Navigator::activate()

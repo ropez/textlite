@@ -33,6 +33,10 @@ Window::Window(BundleManager* bman, QWidget *parent) :
     connect(reloadTimer, SIGNAL(timeout()), this, SLOT(readPendingFiles()));
 }
 
+Window::~Window()
+{
+}
+
 void Window::setFileName(const QString &name)
 {
     this->filename.clear();

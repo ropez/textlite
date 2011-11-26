@@ -19,12 +19,12 @@ MainWindow::MainWindow(QWidget *parent)
     // XXX
     bundleManager->readThemeFile("Espresso.tmTheme");
 
-    Window* win = new Window(bundleManager);
+    win = new Window(bundleManager);
     setCentralWidget(win);
     connect(bundleManager, SIGNAL(themeChanged(Theme)), win, SLOT(themeChanged(Theme)));
 
     navigator = new Navigator(this);
-    connect(navigator, SIGNAL(activated(QString)), win, SLOT(setFileName(QString)));
+    connect(navigator, SIGNAL(activated(QString)), this, SLOT(setFileName(QString)));
     connect(navigator, SIGNAL(themeChange(QString)), bundleManager, SLOT(readThemeFile(QString)));
 
     QAction* quit = new QAction(this);
@@ -42,6 +42,9 @@ MainWindow::MainWindow(QWidget *parent)
     prev->setIcon(QIcon::fromTheme("go-previous"));
     QAction* next = new QAction(this);
     next->setIcon(QIcon::fromTheme("go-next"));
+
+    connect(prev, SIGNAL(triggered()), this, SLOT(back()));
+    connect(next, SIGNAL(triggered()), this, SLOT(forward()));
 
     QToolBar *tb = new QToolBar(tr("Main"), this);
     tb->addAction(prev);
@@ -63,4 +66,35 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::back()
+{
+    navigate(backStack, forwardStack);
+}
+
+void MainWindow::forward()
+{
+    navigate(forwardStack, backStack);
+}
+
+void MainWindow::setFileName(const QString& fileName)
+{
+    backStack.push(fileName);
+    forwardStack.clear();
+    win->setFileName(fileName);
+}
+
+void MainWindow::navigate(QStack<QString>& from, QStack<QString>& to)
+{
+    QString fileName;
+    do {
+        if (from.isEmpty())
+            return;
+        fileName = from.pop();
+        to.push(fileName);
+    } while (fileName == navigator->fileName());
+
+    win->setFileName(fileName);
+    navigator->setFileName(fileName);
 }
