@@ -10,7 +10,6 @@ class QFileSystemWatcher;
 class QTimer;
 
 class Theme;
-class Navigator;
 class Editor;
 class BundleManager;
 
@@ -18,7 +17,7 @@ class Window : public QWidget
 {
     Q_OBJECT
 public:
-    explicit Window(QWidget *parent = 0);
+    explicit Window(BundleManager* bman, QWidget *parent = 0);
 
 private slots:
     void setFileName(const QString& name);
@@ -31,7 +30,6 @@ private slots:
     void themeChanged(const Theme& theme);
 
 private:
-    Navigator* navigator;
     Editor* editor;
     BundleManager* bundleManager;
 

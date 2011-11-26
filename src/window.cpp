@@ -12,39 +12,24 @@
 
 #include <QtDebug>
 
-Window::Window(QWidget *parent) :
-    QWidget(parent)
+Window::Window(BundleManager* bman, QWidget *parent) :
+    QWidget(parent),
+    bundleManager(bman)
 {
     QVBoxLayout *vl = new QVBoxLayout(this);
-    navigator = new Navigator(this);
     editor = new Editor(this);
-    vl->addWidget(navigator);
     vl->addWidget(editor);
 
     editor->setReadOnly(true);
     editor->setWordWrapMode(QTextOption::NoWrap);
 
-    bundleManager = new BundleManager("redcar-bundles/Themes", this);
-    bundleManager->readBundles("redcar-bundles/Bundles");
-
-    // XXX
-    bundleManager->readThemeFile("Espresso.tmTheme");
-
     watcher = new QFileSystemWatcher(this);
     reloadTimer = new QTimer(this);
     reloadTimer->setSingleShot(true);
 
-    connect(navigator, SIGNAL(activated(QString)), this, SLOT(setFileName(QString)));
-    connect(navigator, SIGNAL(themeChange(QString)), bundleManager, SLOT(readThemeFile(QString)));
     connect(editor, SIGNAL(textChanged()), this, SLOT(saveFile()));
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(readFileLater(QString)));
     connect(reloadTimer, SIGNAL(timeout()), this, SLOT(readPendingFiles()));
-    connect(bundleManager, SIGNAL(themeChanged(Theme)), this, SLOT(themeChanged(Theme)));
-
-    QAction* navigate = new QAction(this);
-    navigate->setShortcut(QKeySequence(tr("Ctrl+L")));
-    connect(navigate, SIGNAL(triggered()), navigator, SLOT(setFileFocus()));
-    addAction(navigate);
 }
 
 void Window::setFileName(const QString &name)

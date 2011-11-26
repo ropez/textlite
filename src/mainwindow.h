@@ -3,6 +3,9 @@
 
 #include <QtGui/QMainWindow>
 
+class Navigator;
+class BundleManager;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -10,6 +13,10 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
+
+private:
+    Navigator* navigator;
+    BundleManager* bundleManager;
 };
 
 #endif // MAINWINDOW_H
