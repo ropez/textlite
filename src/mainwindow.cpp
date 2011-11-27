@@ -94,14 +94,13 @@ void MainWindow::visitFile(const QString& fileName)
 
 void MainWindow::historyWalk(QStack<QString>& back, QStack<QString>& forward)
 {
-    QString fileName;
-    do {
-        if (back.isEmpty()) {
-            qWarning("Nothing found in history");
-            return;
-        }
-        fileName = back.pop();
-    } while (fileName == win->currentFileName());
+    // Sanity check
+    if (back.isEmpty()) {
+        qWarning("Nothing found in history");
+        return;
+    }
+
+    QString fileName = back.pop();
     forward.push(win->currentFileName());
 
     win->visitFile(fileName);
