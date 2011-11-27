@@ -40,8 +40,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     QAction* backAction = new QAction(this);
     backAction->setIcon(QIcon::fromTheme("go-previous"));
+    backAction->setShortcut(QKeySequence::Back);
     QAction* forwardAction = new QAction(this);
     forwardAction->setIcon(QIcon::fromTheme("go-next"));
+    forwardAction->setShortcut(QKeySequence::Forward);
 
     connect(backAction, SIGNAL(triggered()), this, SLOT(historyBack()));
     connect(forwardAction, SIGNAL(triggered()), this, SLOT(historyForward()));
