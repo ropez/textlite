@@ -59,6 +59,7 @@ void Window::visitFile(const QString &name)
         editor->setTabStopWidth(QFontMetrics(font).width(' ') * 4);
 
         readFile(name);
+        editor->setTextCursor(QTextCursor(editor->document()));
 
         QFileInfo info(name);
         bundleManager->getHighlighterForExtension(info.completeSuffix(), editor->document());
