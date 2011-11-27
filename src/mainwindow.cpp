@@ -49,16 +49,10 @@ MainWindow::MainWindow(QWidget *parent)
     QToolBar *tb = new QToolBar(tr("Main"), this);
     tb->addAction(prev);
     tb->addAction(next);
-
-//    QLineEdit* edit = new QLineEdit(this);
-//    tb->addSeparator();
-//    tb->addWidget(new QLabel(tr("File:")));
-//    tb->addWidget(edit);
-
     tb->addWidget(navigator);
-
     tb->setMovable(false);
     addToolBar(tb);
+
     resize(800, 600);
 
     navigator->setFileFocus();
