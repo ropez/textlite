@@ -17,21 +17,21 @@ public:
     ~MainWindow();
 
 public slots:
-    void back();
-    void forward();
+    void historyBack();
+    void historyForward();
 
     void setFileName(const QString& fileName);
 
 private:
-    void navigate(QStack<QString>& from, QStack<QString>& to);
+    void historyWalk(QStack<QString>& back, QStack<QString>& forward);
 
 private:
     Window* win;
     Navigator* navigator;
     BundleManager* bundleManager;
 
-    QStack<QString> backStack;
-    QStack<QString> forwardStack;
+    QStack<QString> historyBackStack;
+    QStack<QString> historyForwardStack;
 };
 
 #endif // MAINWINDOW_H

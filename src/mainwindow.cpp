@@ -43,8 +43,8 @@ MainWindow::MainWindow(QWidget *parent)
     QAction* next = new QAction(this);
     next->setIcon(QIcon::fromTheme("go-next"));
 
-    connect(prev, SIGNAL(triggered()), this, SLOT(back()));
-    connect(next, SIGNAL(triggered()), this, SLOT(forward()));
+    connect(prev, SIGNAL(triggered()), this, SLOT(historyBack()));
+    connect(next, SIGNAL(triggered()), this, SLOT(historyForward()));
 
     QToolBar *tb = new QToolBar(tr("Main"), this);
     tb->addAction(prev);
@@ -68,31 +68,31 @@ MainWindow::~MainWindow()
 {
 }
 
-void MainWindow::back()
+void MainWindow::historyBack()
 {
-    navigate(backStack, forwardStack);
+    historyWalk(historyBackStack, historyForwardStack);
 }
 
-void MainWindow::forward()
+void MainWindow::historyForward()
 {
-    navigate(forwardStack, backStack);
+    historyWalk(historyForwardStack, historyBackStack);
 }
 
 void MainWindow::setFileName(const QString& fileName)
 {
-    backStack.push(fileName);
-    forwardStack.clear();
+    historyBackStack.push(fileName);
+    historyForwardStack.clear();
     win->setFileName(fileName);
 }
 
-void MainWindow::navigate(QStack<QString>& from, QStack<QString>& to)
+void MainWindow::historyWalk(QStack<QString>& back, QStack<QString>& forward)
 {
     QString fileName;
     do {
-        if (from.isEmpty())
+        if (back.isEmpty())
             return;
-        fileName = from.pop();
-        to.push(fileName);
+        fileName = back.pop();
+        forward.push(fileName);
     } while (fileName == navigator->fileName());
 
     win->setFileName(fileName);
