@@ -59,8 +59,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     navigator->setFileFocus();
 
-    emit historyBackAvailable(false);
-    emit historyForwardAvailable(false);
+    historyUpdate();
 }
 
 MainWindow::~MainWindow()
@@ -70,11 +69,13 @@ MainWindow::~MainWindow()
 void MainWindow::historyBack()
 {
     historyWalk(historyBackStack, historyForwardStack);
+    historyUpdate();
 }
 
 void MainWindow::historyForward()
 {
     historyWalk(historyForwardStack, historyBackStack);
+    historyUpdate();
 }
 
 void MainWindow::visitFile(const QString& fileName)
@@ -88,6 +89,11 @@ void MainWindow::visitFile(const QString& fileName)
 
     win->visitFile(fileName);
 
+    historyUpdate();
+}
+
+void MainWindow::historyUpdate()
+{
     emit historyBackAvailable(!historyBackStack.isEmpty());
     emit historyForwardAvailable(!historyForwardStack.isEmpty());
 }
@@ -105,7 +111,4 @@ void MainWindow::historyWalk(QStack<QString>& back, QStack<QString>& forward)
 
     win->visitFile(fileName);
     navigator->setFileName(fileName);
-
-    emit historyBackAvailable(!historyBackStack.isEmpty());
-    emit historyForwardAvailable(!historyForwardStack.isEmpty());
 }

@@ -27,6 +27,7 @@ signals:
     void historyForwardAvailable(bool yes);
 
 private:
+    void historyUpdate();
     void historyWalk(QStack<QString>& back, QStack<QString>& forward);
 
 private:
