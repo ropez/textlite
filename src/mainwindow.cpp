@@ -74,8 +74,13 @@ void MainWindow::historyForward()
 
 void MainWindow::visitFile(const QString& fileName)
 {
-    historyBackStack.push(fileName);
-    historyForwardStack.clear();
+    if (win->currentFileName() != fileName) {
+        if (!win->currentFileName().isEmpty()) {
+            historyBackStack.push(win->currentFileName());
+        }
+        historyForwardStack.clear();
+    }
+
     win->visitFile(fileName);
 }
 
@@ -83,11 +88,13 @@ void MainWindow::historyWalk(QStack<QString>& back, QStack<QString>& forward)
 {
     QString fileName;
     do {
-        if (back.isEmpty())
+        if (back.isEmpty()) {
+            qWarning("Nothing found in history");
             return;
+        }
         fileName = back.pop();
-        forward.push(fileName);
-    } while (fileName == navigator->fileName());
+    } while (fileName == win->currentFileName());
+    forward.push(win->currentFileName());
 
     win->visitFile(fileName);
     navigator->setFileName(fileName);

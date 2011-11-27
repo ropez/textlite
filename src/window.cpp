@@ -37,6 +37,11 @@ Window::~Window()
 {
 }
 
+QString Window::currentFileName() const
+{
+    return filename;
+}
+
 void Window::visitFile(const QString &name)
 {
     this->filename.clear();

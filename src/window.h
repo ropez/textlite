@@ -20,6 +20,8 @@ public:
     explicit Window(BundleManager* bman, QWidget *parent = 0);
     ~Window();
 
+    QString currentFileName() const;
+
 public slots:
     void visitFile(const QString& name);
 
