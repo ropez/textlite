@@ -17,7 +17,7 @@ public:
     Theme();
     ~Theme();
 
-    void readThemeFile(const QString& themeFile);
+    void setThemeData(const QVariantMap& themeData);
 
     QTextCharFormat format(const QString& name) const;
 

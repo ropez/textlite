@@ -11,17 +11,16 @@ class BundleManagerPrivate
     friend class BundleManager;
 
     Theme theme;
-    QString themeDirPath;
 
     QMap<QString, QString> fileTypes;
+    QMap<QString, QVariantMap> themeData;
     QMap<QString, QVariantMap> syntaxData;
 };
 
-BundleManager::BundleManager(const QString& themeDirPath, QObject *parent) :
+BundleManager::BundleManager(QObject *parent) :
     QObject(parent),
     d(new BundleManagerPrivate)
 {
-    d->themeDirPath = themeDirPath;
 }
 
 BundleManager::~BundleManager()
@@ -31,6 +30,27 @@ BundleManager::~BundleManager()
 Theme BundleManager::theme() const
 {
     return d->theme;
+}
+
+QStringList BundleManager::themeNames() const
+{
+    return d->themeData.keys();
+}
+
+void BundleManager::readThemes(const QString& path)
+{
+    QDir themeDir(path);
+    themeDir.setFilter(QDir::Files);
+    themeDir.setNameFilters(QStringList() << "*.tmTheme");
+    foreach (QString themeFileName, themeDir.entryList()) {
+        QString themeFilePath = path + "/" + themeFileName;
+        PlistReader reader;
+        QVariantMap themeData = reader.read(themeFilePath).toMap();
+        QString themeName = themeData["name"].toString();
+        if (!themeName.isEmpty()) {
+            d->themeData[themeName] = themeData;
+        }
+    }
 }
 
 void BundleManager::readBundles(const QString &path)
@@ -78,8 +98,8 @@ Highlighter* BundleManager::getHighlighterForExtension(const QString& extension,
     return highlighter;
 }
 
-void BundleManager::readThemeFile(const QString& themeFile)
+void BundleManager::setThemeName(const QString& themeName)
 {
-    d->theme.readThemeFile(d->themeDirPath + "/" + themeFile);
+    d->theme.setThemeData(d->themeData[themeName]);
     emit themeChanged(d->theme);
 }

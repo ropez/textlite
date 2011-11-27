@@ -63,12 +63,6 @@ Navigator::Navigator(QWidget *parent) :
         QMessageBox::critical(this, tr("Git operation failed"), e.message());
     }
 
-    QDir themeDir("redcar-bundles/Themes");
-    themeDir.setFilter(QDir::Files);
-    themeDir.setNameFilters(QStringList() << "*.tmTheme");
-    QStringList themeList = themeDir.entryList();
-    ui->themeSelector->addItems(themeList);
-
     connect(ui->themeSelector, SIGNAL(activated(QString)), this, SIGNAL(themeChange(QString)));
 }
 
@@ -91,6 +85,15 @@ void Navigator::setFileFocus()
 void Navigator::setFileName(const QString& fileName)
 {
     ui->comboBox->setText(fileName);
+}
+
+void Navigator::setThemeNames(const QStringList& themeList)
+{
+    ui->themeSelector->clear();
+    ui->themeSelector->addItems(themeList);
+
+    // FIXME Temporary until theme is stored between sessions
+    emit themeChange(ui->themeSelector->currentText());
 }
 
 void Navigator::activate()

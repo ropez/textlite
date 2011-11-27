@@ -20,6 +20,7 @@ public:
 public slots:
     void setFileFocus();
     void setFileName(const QString& fileName);
+    void setThemeNames(const QStringList& themeList);
 
 signals:
     void activated(const QString& fileName);

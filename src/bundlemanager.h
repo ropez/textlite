@@ -15,11 +15,13 @@ class BundleManager : public QObject
 {
     Q_OBJECT
 public:
-    explicit BundleManager(const QString& themeDirPath, QObject *parent = 0);
+    explicit BundleManager(QObject *parent = 0);
     ~BundleManager();
 
     Theme theme() const;
+    QStringList themeNames() const;
 
+    void readThemes(const QString& path);
     void readBundles(const QString& path);
 
     QVariantMap getSyntaxData(const QString& scopeName) const;
@@ -30,7 +32,7 @@ signals:
     void themeChanged(const Theme& theme);
 
 public slots:
-    void readThemeFile(const QString& themeFile);
+    void setThemeName(const QString& themeName);
 
 private:
     QScopedPointer<BundleManagerPrivate> d;

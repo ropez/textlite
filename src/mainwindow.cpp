@@ -13,11 +13,9 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    bundleManager = new BundleManager("redcar-bundles/Themes", this);
+    bundleManager = new BundleManager(this);
+    bundleManager->readThemes("redcar-bundles/Themes");
     bundleManager->readBundles("redcar-bundles/Bundles");
-
-    // XXX
-    bundleManager->readThemeFile("Espresso.tmTheme");
 
     win = new Window(bundleManager);
     setCentralWidget(win);
@@ -25,7 +23,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     navigator = new Navigator(this);
     connect(navigator, SIGNAL(activated(QString)), this, SLOT(visitFile(QString)));
-    connect(navigator, SIGNAL(themeChange(QString)), bundleManager, SLOT(readThemeFile(QString)));
+    connect(navigator, SIGNAL(themeChange(QString)), bundleManager, SLOT(setThemeName(QString)));
+    navigator->setThemeNames(bundleManager->themeNames());
 
     QAction* quitAction = new QAction(tr("Quit"), this);
     quitAction->setIcon(QIcon::fromTheme("application-exit"));

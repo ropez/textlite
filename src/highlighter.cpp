@@ -1,13 +1,10 @@
 #include "highlighter.h"
-#include "plistreader.h"
 #include "bundlemanager.h"
 
 #include <QTextCharFormat>
 #include <QList>
 #include <QStack>
 #include <QMap>
-
-#include <QFile>
 
 #include <QtDebug>
 
@@ -197,12 +194,10 @@ Theme::~Theme()
 {
 }
 
-void Theme::readThemeFile(const QString &themeFile)
+void Theme::setThemeData(const QVariantMap& themeData)
 {
     d->data.clear();
-    PlistReader reader;
-    QVariantMap def = reader.read(themeFile).toMap();
-    QVariantList settingsListData = def.value("settings").toList();
+    QVariantList settingsListData = themeData.value("settings").toList();
     QListIterator<QVariant> iter(settingsListData);
     while (iter.hasNext()) {
         QVariantMap itemData = iter.next().toMap();
