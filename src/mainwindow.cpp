@@ -45,6 +45,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(backAction, SIGNAL(triggered()), this, SLOT(historyBack()));
     connect(forwardAction, SIGNAL(triggered()), this, SLOT(historyForward()));
+    connect(this, SIGNAL(historyBackAvailable(bool)), backAction, SLOT(setEnabled(bool)));
+    connect(this, SIGNAL(historyForwardAvailable(bool)), forwardAction, SLOT(setEnabled(bool)));
 
     QToolBar *tb = new QToolBar(tr("Main"), this);
     tb->addAction(backAction);
@@ -56,6 +58,9 @@ MainWindow::MainWindow(QWidget *parent)
     resize(800, 600);
 
     navigator->setFileFocus();
+
+    emit historyBackAvailable(false);
+    emit historyForwardAvailable(false);
 }
 
 MainWindow::~MainWindow()
@@ -82,6 +87,9 @@ void MainWindow::visitFile(const QString& fileName)
     }
 
     win->visitFile(fileName);
+
+    emit historyBackAvailable(!historyBackStack.isEmpty());
+    emit historyForwardAvailable(!historyForwardStack.isEmpty());
 }
 
 void MainWindow::historyWalk(QStack<QString>& back, QStack<QString>& forward)
@@ -98,4 +106,7 @@ void MainWindow::historyWalk(QStack<QString>& back, QStack<QString>& forward)
 
     win->visitFile(fileName);
     navigator->setFileName(fileName);
+
+    emit historyBackAvailable(!historyBackStack.isEmpty());
+    emit historyForwardAvailable(!historyForwardStack.isEmpty());
 }

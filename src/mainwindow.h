@@ -22,6 +22,10 @@ public slots:
 
     void visitFile(const QString& fileName);
 
+signals:
+    void historyBackAvailable(bool yes);
+    void historyForwardAvailable(bool yes);
+
 private:
     void historyWalk(QStack<QString>& back, QStack<QString>& forward);
 
