@@ -8,7 +8,9 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMenu>
 #include <QToolBar>
+#include <QToolButton>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -49,10 +51,19 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, SIGNAL(historyBackAvailable(bool)), backAction, SLOT(setEnabled(bool)));
     connect(this, SIGNAL(historyForwardAvailable(bool)), forwardAction, SLOT(setEnabled(bool)));
 
+    QMenu* menu = new QMenu(tr("Menu"));
+    menu->addAction(quitAction);
+
+    QToolButton* menuButton = new QToolButton(this);
+    menuButton->setIcon(QIcon::fromTheme("document-properties"));
+    menuButton->setMenu(menu);
+    menuButton->setPopupMode(QToolButton::InstantPopup);
+
     QToolBar *tb = new QToolBar(tr("Main"), this);
     tb->addAction(backAction);
     tb->addAction(forwardAction);
     tb->addWidget(navigator);
+    tb->addWidget(menuButton);
     tb->setMovable(false);
     addToolBar(tb);
 
