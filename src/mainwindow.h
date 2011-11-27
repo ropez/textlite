@@ -20,7 +20,7 @@ public slots:
     void historyBack();
     void historyForward();
 
-    void setFileName(const QString& fileName);
+    void visitFile(const QString& fileName);
 
 private:
     void historyWalk(QStack<QString>& back, QStack<QString>& forward);

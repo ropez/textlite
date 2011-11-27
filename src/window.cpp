@@ -37,7 +37,7 @@ Window::~Window()
 {
 }
 
-void Window::setFileName(const QString &name)
+void Window::visitFile(const QString &name)
 {
     this->filename.clear();
 

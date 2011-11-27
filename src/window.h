@@ -21,7 +21,7 @@ public:
     ~Window();
 
 public slots:
-    void setFileName(const QString& name);
+    void visitFile(const QString& name);
 
 private slots:
     void saveFile();

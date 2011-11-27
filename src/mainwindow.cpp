@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(bundleManager, SIGNAL(themeChanged(Theme)), win, SLOT(themeChanged(Theme)));
 
     navigator = new Navigator(this);
-    connect(navigator, SIGNAL(activated(QString)), this, SLOT(setFileName(QString)));
+    connect(navigator, SIGNAL(activated(QString)), this, SLOT(visitFile(QString)));
     connect(navigator, SIGNAL(themeChange(QString)), bundleManager, SLOT(readThemeFile(QString)));
 
     QAction* quitAction = new QAction(this);
@@ -72,11 +72,11 @@ void MainWindow::historyForward()
     historyWalk(historyForwardStack, historyBackStack);
 }
 
-void MainWindow::setFileName(const QString& fileName)
+void MainWindow::visitFile(const QString& fileName)
 {
     historyBackStack.push(fileName);
     historyForwardStack.clear();
-    win->setFileName(fileName);
+    win->visitFile(fileName);
 }
 
 void MainWindow::historyWalk(QStack<QString>& back, QStack<QString>& forward)
@@ -89,6 +89,6 @@ void MainWindow::historyWalk(QStack<QString>& back, QStack<QString>& forward)
         forward.push(fileName);
     } while (fileName == navigator->fileName());
 
-    win->setFileName(fileName);
+    win->visitFile(fileName);
     navigator->setFileName(fileName);
 }
