@@ -27,21 +27,21 @@ MainWindow::MainWindow(QWidget *parent)
     connect(navigator, SIGNAL(activated(QString)), this, SLOT(visitFile(QString)));
     connect(navigator, SIGNAL(themeChange(QString)), bundleManager, SLOT(readThemeFile(QString)));
 
-    QAction* quitAction = new QAction(this);
+    QAction* quitAction = new QAction(tr("Quit"), this);
     quitAction->setIcon(QIcon::fromTheme("application-exit"));
     quitAction->setShortcut(QKeySequence(QKeySequence::Quit));
     connect(quitAction, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
     addAction(quitAction);
 
-    QAction* pathFocusAction = new QAction(this);
+    QAction* pathFocusAction = new QAction(tr("Focus path"), this);
     pathFocusAction->setShortcut(QKeySequence(tr("Ctrl+L")));
     connect(pathFocusAction, SIGNAL(triggered()), navigator, SLOT(setFileFocus()));
     addAction(pathFocusAction);
 
-    QAction* backAction = new QAction(this);
+    QAction* backAction = new QAction(tr("Back"), this);
     backAction->setIcon(QIcon::fromTheme("go-previous"));
     backAction->setShortcut(QKeySequence::Back);
-    QAction* forwardAction = new QAction(this);
+    QAction* forwardAction = new QAction(tr("Forward"), this);
     forwardAction->setIcon(QIcon::fromTheme("go-next"));
     forwardAction->setShortcut(QKeySequence::Forward);
 
