@@ -27,28 +27,28 @@ MainWindow::MainWindow(QWidget *parent)
     connect(navigator, SIGNAL(activated(QString)), this, SLOT(setFileName(QString)));
     connect(navigator, SIGNAL(themeChange(QString)), bundleManager, SLOT(readThemeFile(QString)));
 
-    QAction* quit = new QAction(this);
-    quit->setIcon(QIcon::fromTheme("application-exit"));
-    quit->setShortcut(QKeySequence(QKeySequence::Quit));
-    connect(quit, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
-    addAction(quit);
+    QAction* quitAction = new QAction(this);
+    quitAction->setIcon(QIcon::fromTheme("application-exit"));
+    quitAction->setShortcut(QKeySequence(QKeySequence::Quit));
+    connect(quitAction, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
+    addAction(quitAction);
 
-    QAction* navigate = new QAction(this);
-    navigate->setShortcut(QKeySequence(tr("Ctrl+L")));
-    connect(navigate, SIGNAL(triggered()), navigator, SLOT(setFileFocus()));
-    addAction(navigate);
+    QAction* pathFocusAction = new QAction(this);
+    pathFocusAction->setShortcut(QKeySequence(tr("Ctrl+L")));
+    connect(pathFocusAction, SIGNAL(triggered()), navigator, SLOT(setFileFocus()));
+    addAction(pathFocusAction);
 
-    QAction* prev = new QAction(this);
-    prev->setIcon(QIcon::fromTheme("go-previous"));
-    QAction* next = new QAction(this);
-    next->setIcon(QIcon::fromTheme("go-next"));
+    QAction* backAction = new QAction(this);
+    backAction->setIcon(QIcon::fromTheme("go-previous"));
+    QAction* forwardAction = new QAction(this);
+    forwardAction->setIcon(QIcon::fromTheme("go-next"));
 
-    connect(prev, SIGNAL(triggered()), this, SLOT(historyBack()));
-    connect(next, SIGNAL(triggered()), this, SLOT(historyForward()));
+    connect(backAction, SIGNAL(triggered()), this, SLOT(historyBack()));
+    connect(forwardAction, SIGNAL(triggered()), this, SLOT(historyForward()));
 
     QToolBar *tb = new QToolBar(tr("Main"), this);
-    tb->addAction(prev);
-    tb->addAction(next);
+    tb->addAction(backAction);
+    tb->addAction(forwardAction);
     tb->addWidget(navigator);
     tb->setMovable(false);
     addToolBar(tb);
