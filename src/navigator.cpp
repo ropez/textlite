@@ -2,8 +2,7 @@
 #include "ui_navigator.h"
 
 #include <qgitrepository.h>
-#include <qgitindex.h>
-#include <qgitindexentry.h>
+#include <qgitindexmodel.h>
 #include <qgitexception.h>
 
 #include <QCompleter>
@@ -43,17 +42,7 @@ Navigator::Navigator(QWidget *parent) :
         QDir::setCurrent(repo.workDirPath());
 
         // Read Git index
-        QGitIndex index = repo.index();
-        index.read();
-
-        // Create list of index entries for filename autocompletion
-        QStringList gitEntryList;
-        for (size_t i = 0; i < index.entryCount(); i++) {
-            QGitIndexEntry e = index.get(i);
-            gitEntryList.append(QString(e.path()));
-            qDebug() << e.id().format() << "=>" << e.path();
-        }
-        QStringListModel* model = new QStringListModel(gitEntryList, this);
+        QGitIndexModel* model = new QGitIndexModel(repo.index(), this);
 
         // Create completer
         QCompleter* completer = new QCompleter(this);
