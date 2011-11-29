@@ -249,7 +249,7 @@ QTextCharFormat Theme::format(const QString& name) const
     return d->data.value(name);
 }
 
-QTextCharFormat Theme::findFormat(const QStack<QString>& scope) const
+QTextCharFormat Theme::findFormat(const ScopeSelector& scope) const
 {
     QTextCharFormat format;
     QMap<ScopeSelector, QTextCharFormat>::const_iterator it;

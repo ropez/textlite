@@ -9,6 +9,7 @@ class BundleManager;
 class GrammarPrivate;
 class HighlighterPrivate;
 
+class ScopeSelector;
 class ThemePrivate;
 
 class Theme
@@ -27,7 +28,7 @@ public:
       "string.koko","pun.ruby" => "string.koko pun.ruby", "string pun.ruby" -> "pun.ruby" -> "string pun" -> "pun" -> "string" -> ""
       "a", "b", "c" => "a b c" -> "b c" -> "a c" -> "c" -> "a b" -> "b" -> "a" -> ""
       */
-    QTextCharFormat findFormat(const QStack<QString>& scope) const;
+    QTextCharFormat findFormat(const ScopeSelector& scope) const;
 
 private:
     QSharedPointer<ThemePrivate> d;
