@@ -103,6 +103,18 @@ QColor parseThemeColor(const QString& hex)
     }
     return QColor(hex);
 }
+
+bool listComparePrefix(const QStringList& list, const QStringList& prefix)
+{
+    if (list.length() < prefix.length())
+        return false;
+
+    for (int i = 0; i < prefix.length(); i++) {
+        if (list[i] != prefix[i])
+            return false;
+    }
+    return true;
+}
 }
 
 class ScopeSelector : public QStack<QStringList>
@@ -135,14 +147,14 @@ public:
 
 bool ScopeSelector::matches(const ScopeSelector& scope)
 {
-    QStack<QStringList> rest = scope;
+    int l = scope.size();
     for (int i = 0; i < size(); i++) {
-        QStringList s = at(size() - 1 - i);
+        const QStringList& s = at(size() - 1 - i);
         while (true) {
-            if (rest.isEmpty())
+            if (l == 0)
                 return false;
-            QStringList x = rest.pop().mid(0, s.length());
-            if (x == s)
+            const QStringList& x = scope[--l];
+            if (listComparePrefix(x, s))
                 break;
         }
     }
