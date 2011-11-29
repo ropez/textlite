@@ -470,9 +470,9 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
 {
     const int offset = index - base;
 
+    Match match;
     foreach (RulePtr rule, parentRule->patterns) {
         if (rule->begin.isValid()) {
-            Match match;
             if (rule->begin.search(base, end, index, end, match)) {
                 if (foundMatch.isEmpty() || match.pos() < foundMatch.pos()) {
                     foundRule = rule;
@@ -481,7 +481,6 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
                 }
             }
         } else if (rule->match.isValid()) {
-            Match match;
             if (rule->match.search(base, end, index, end, match)) {
                 if (foundMatch.isEmpty() || match.pos() < foundMatch.pos()) {
                     foundRule = rule;
