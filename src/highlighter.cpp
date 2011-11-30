@@ -96,8 +96,6 @@ QString formatEndPattern(const QString& fmt, const Match& beginMatch) {
 class GrammarPrivate
 {
     friend class Grammar;
-    friend class Highlighter;
-    friend class HighlighterPrivate;
 
     RulePtr root;
     QList<RulePtr> all;
