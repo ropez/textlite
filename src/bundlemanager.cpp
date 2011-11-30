@@ -1,5 +1,6 @@
 #include "bundlemanager.h"
 #include "highlighter.h"
+#include "theme.h"
 #include "plistreader.h"
 
 #include <QDir>

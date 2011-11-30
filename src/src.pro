@@ -18,7 +18,9 @@ SOURCES += main.cpp\
     highlighter.cpp \
     plistreader.cpp \
     bundlemanager.cpp \
-    regex.cpp
+    regex.cpp \
+    theme.cpp \
+    scopeselector.cpp
 
 HEADERS  += mainwindow.h \
     navigator.h \
@@ -27,7 +29,9 @@ HEADERS  += mainwindow.h \
     highlighter.h \
     plistreader.h \
     bundlemanager.h \
-    regex.h
+    regex.h \
+    theme.h \
+    scopeselector.h
 
 FORMS += \
     navigator.ui

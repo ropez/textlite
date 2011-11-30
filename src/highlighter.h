@@ -5,34 +5,10 @@
 #include <QScopedPointer>
 #include <QStack>
 
+class Theme;
 class BundleManager;
 class GrammarPrivate;
 class HighlighterPrivate;
-
-class ScopeSelector;
-class ThemePrivate;
-
-class Theme
-{
-public:
-    Theme();
-    ~Theme();
-
-    void setThemeData(const QVariantMap& themeData);
-
-    QTextCharFormat format(const QString& name) const;
-
-    /**
-      "string" => "string" -> ""
-      "string.quoted" => "string.quited" -> "string" -> ""
-      "string.koko","pun.ruby" => "string.koko pun.ruby", "string pun.ruby" -> "pun.ruby" -> "string pun" -> "pun" -> "string" -> ""
-      "a", "b", "c" => "a b c" -> "b c" -> "a c" -> "c" -> "a b" -> "b" -> "a" -> ""
-      */
-    QTextCharFormat findFormat(const ScopeSelector& scope) const;
-
-private:
-    QSharedPointer<ThemePrivate> d;
-};
 
 class Grammar
 {

@@ -2,7 +2,7 @@
 #include "navigator.h"
 #include "editor.h"
 #include "bundlemanager.h"
-#include "highlighter.h" // XXX thememanager.h
+#include "theme.h"
 
 #include <QAction>
 #include <QLayout>
