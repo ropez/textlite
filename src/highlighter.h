@@ -10,13 +10,24 @@ class BundleManager;
 class GrammarPrivate;
 class HighlighterPrivate;
 
+struct RuleData;
+typedef QSharedPointer<RuleData> RulePtr;
+typedef QWeakPointer<RuleData> WeakRulePtr;
+
+
 class Grammar
 {
 public:
     Grammar();
     ~Grammar();
 
+    RulePtr root() const;
+
     void readSyntaxData(const QVariantMap& syntaxData);
+
+    void resolveChildRules(const QMap<QString, QVariantMap>& syntaxData);
+    void resolveChildRules(RulePtr baseRule, RulePtr parentRule,
+                           const QMap<QString, QVariantMap>& syntaxData);
 
 private:
     friend class Highlighter;
