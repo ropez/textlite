@@ -83,9 +83,9 @@ void BundleManager::readBundles(const QString &path)
     }
 }
 
-QVariantMap BundleManager::getSyntaxData(const QString& scopeName) const
+QMap<QString, QVariantMap> BundleManager::getSyntaxData() const
 {
-    return d->syntaxData[scopeName];
+    return d->syntaxData;
 }
 
 Highlighter* BundleManager::getHighlighterForExtension(const QString& extension, QTextDocument* document)

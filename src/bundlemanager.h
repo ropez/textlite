@@ -24,7 +24,7 @@ public:
     void readThemes(const QString& path);
     void readBundles(const QString& path);
 
-    QVariantMap getSyntaxData(const QString& scopeName) const;
+    QMap<QString, QVariantMap> getSyntaxData() const;
 
     Highlighter* getHighlighterForExtension(const QString& extension, QTextDocument* document);
 
