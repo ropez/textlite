@@ -26,8 +26,8 @@ public:
     void readSyntaxData(const QVariantMap& syntaxData);
 
     void resolveChildRules(const QMap<QString, QVariantMap>& syntaxData);
-    void resolveChildRules(RulePtr baseRule, RulePtr parentRule,
-                           const QMap<QString, QVariantMap>& syntaxData);
+    void resolveChildRules(const QMap<QString, QVariantMap>& syntaxData, RulePtr baseRule);
+    void resolveChildRules(const QMap<QString, QVariantMap>& syntaxData, RulePtr baseRule, RulePtr parentRule);
 
 private:
     friend class Highlighter;

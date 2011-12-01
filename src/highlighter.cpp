@@ -221,11 +221,18 @@ QList<WeakRulePtr> GrammarPrivate::makeRuleList(const QVariantList& ruleListData
 
 void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData)
 {
-    resolveChildRules(d->root, d->root, syntaxData);
+    resolveChildRules(syntaxData, d->root, d->root);
 }
 
-void Grammar::resolveChildRules(RulePtr baseRule, RulePtr parentRule,
-                                const QMap<QString, QVariantMap>& syntaxData)
+
+void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
+                                RulePtr baseRule)
+{
+    resolveChildRules(syntaxData, baseRule, d->root);
+}
+
+void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
+                                RulePtr baseRule, RulePtr parentRule)
 {
     if (parentRule->visited) return;
     parentRule->visited = true;
@@ -241,23 +248,22 @@ void Grammar::resolveChildRules(RulePtr baseRule, RulePtr parentRule,
             } else if (d->repository.contains(rule->include)) {
                 rule = d->repository.value(rule->include);
                 iter.setValue(rule);
-                resolveChildRules(baseRule, rule, syntaxData);
+                resolveChildRules(syntaxData, baseRule, rule);
             } else if (d->grammars.contains(rule->include)) {
                 iter.setValue(d->grammars.value(rule->include).root());
             } else if (syntaxData.contains(rule->include)) {
                 QVariantMap data = syntaxData[rule->include];
                 Grammar g;
                 g.readSyntaxData(data);
-                rule = g.root();
-                iter.setValue(rule);
-                g.resolveChildRules(baseRule, rule, syntaxData);
+                g.resolveChildRules(syntaxData, baseRule);
+                iter.setValue(g.root());
                 d->grammars[rule->include] = g;
             } else {
                 qWarning() << "Pattern not in repository" << rule->include;
                 iter.remove();
             }
         } else {
-            resolveChildRules(baseRule, rule, syntaxData);
+            resolveChildRules(syntaxData, baseRule, rule);
         }
     }
 }
