@@ -62,6 +62,17 @@ QString Match::cap(int n) const
     return QString(d_func()->begin + pos(n), len(n));
 }
 
+QString Match::format(const QString& fmt) const
+{
+    int size = qMin(this->size(), 10);
+    QString result = fmt;
+    for (int i = 0; i < size; i++) {
+        QString ref = "\\" + QString::number(i);
+        result.replace(ref, cap(i));
+    }
+    return result;
+}
+
 class RegexPrivate
 {
 public:

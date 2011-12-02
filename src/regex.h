@@ -66,6 +66,11 @@ public:
       */
     QString cap(int n = 0) const;
 
+    /**
+     * Replace backrefs in the string 'fmt' with captured subexpressions.
+     */
+    QString format(const QString& fmt) const;
+
 private:
     friend class Regex;
 
