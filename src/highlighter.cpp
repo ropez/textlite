@@ -158,7 +158,7 @@ QMap<int, RulePtr> GrammarPrivate::makeCaptures(const QVariantMap& capturesData)
 RulePtr GrammarPrivate::makeRule(const QVariantMap& ruleData)
 {
     RulePtr rule(new RuleData);
-    this->all.append(rule);
+    all << rule;
 
     rule->name = ruleData.value("name").toString();
     if (ruleData.contains("contentName"))
