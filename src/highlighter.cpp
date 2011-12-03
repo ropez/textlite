@@ -32,7 +32,7 @@ struct RuleData {
     QMap<int, RulePtr> captures;
     QMap<int, RulePtr> beginCaptures;
     QMap<int, RulePtr> endCaptures;
-    QList<WeakRulePtr> patterns;
+    QList<RulePtr> patterns;
     WeakRulePtr include;
 };
 
@@ -89,14 +89,13 @@ class GrammarPrivate
     friend class Grammar;
 
     RulePtr root;
-    QList<RulePtr> all;
     QMap<QString, RulePtr> repository;
 
     QMap<QString, Grammar> grammars;
 
     QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData);
     RulePtr makeRule(const QVariantMap& ruleData);
-    QList<WeakRulePtr> makeRuleList(const QVariantList& ruleListData);
+    QList<RulePtr> makeRuleList(const QVariantList& ruleListData);
 };
 
 Grammar::Grammar() :
@@ -159,7 +158,6 @@ QMap<int, RulePtr> GrammarPrivate::makeCaptures(const QVariantMap& capturesData)
 RulePtr GrammarPrivate::makeRule(const QVariantMap& ruleData)
 {
     RulePtr rule(new RuleData);
-    all << rule;
 
     rule->name = ruleData.value("name").toString();
     if (ruleData.contains("contentName"))
@@ -199,9 +197,9 @@ RulePtr GrammarPrivate::makeRule(const QVariantMap& ruleData)
     return rule;
 }
 
-QList<WeakRulePtr> GrammarPrivate::makeRuleList(const QVariantList& ruleListData)
+QList<RulePtr> GrammarPrivate::makeRuleList(const QVariantList& ruleListData)
 {
-    QList<WeakRulePtr> rules;
+    QList<RulePtr> rules;
     QListIterator<QVariant> iter(ruleListData);
     while (iter.hasNext()) {
         QVariantMap ruleData = iter.next().toMap();
@@ -228,7 +226,7 @@ void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
     if (parentRule->visited) return;
     parentRule->visited = true;
 
-    QMutableListIterator<WeakRulePtr> iter(parentRule->patterns);
+    QMutableListIterator<RulePtr> iter(parentRule->patterns);
     while (iter.hasNext()) {
         RulePtr rule = iter.next();
         if (rule->includeName != QString()) {
