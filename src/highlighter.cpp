@@ -226,34 +226,28 @@ void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
     if (parentRule->visited) return;
     parentRule->visited = true;
 
-    QMutableListIterator<RulePtr> iter(parentRule->patterns);
+    QListIterator<RulePtr> iter(parentRule->patterns);
     while (iter.hasNext()) {
         RulePtr rule = iter.next();
         if (rule->includeName != QString()) {
             if (rule->includeName == "$base") {
                 rule->include = baseRule;
-//                iter.setValue(baseRule);
             } else if (rule->includeName == "$self") {
                 rule->include = d->root;
-//                iter.setValue(d->root);
             } else if (d->repository.contains(rule->includeName)) {
                 rule->include = d->repository.value(rule->includeName);
-//                iter.setValue(rule);
                 resolveChildRules(syntaxData, baseRule, rule->include);
             } else if (d->grammars.contains(rule->includeName)) {
                 rule->include = d->grammars.value(rule->includeName).root();
-//                iter.setValue(d->grammars.value(rule->includeName).root());
             } else if (syntaxData.contains(rule->includeName)) {
                 QVariantMap data = syntaxData[rule->includeName];
                 Grammar g;
                 g.readSyntaxData(data);
                 g.resolveChildRules(syntaxData, baseRule);
                 rule->include = g.root();
-//                iter.setValue(g.root());
                 d->grammars[rule->includeName] = g;
             } else {
                 qWarning() << "Pattern not in repository" << rule->includeName;
-                iter.remove();
             }
         } else {
             resolveChildRules(syntaxData, baseRule, rule);
