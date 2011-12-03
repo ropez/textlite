@@ -23,11 +23,14 @@ public:
 
     RulePtr root() const;
 
-    void readSyntaxData(const QVariantMap& syntaxData);
+    void compile(const QMap<QString, QVariantMap>& syntaxData, const QString& scopeName);
 
-    void resolveChildRules(const QMap<QString, QVariantMap>& syntaxData);
-    void resolveChildRules(const QMap<QString, QVariantMap>& syntaxData, RulePtr baseRule);
-    void resolveChildRules(const QMap<QString, QVariantMap>& syntaxData, RulePtr baseRule, RulePtr parentRule);
+    RulePtr readSyntaxData(const QVariantMap &syntaxData) const;
+    QMap<QString, RulePtr> readRepository(const QVariantMap& syntaxData) const;
+
+    void resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
+                           const QMap<QString, RulePtr>& repository,
+                           RulePtr baseRule, RulePtr selfRule, RulePtr parentRule);
 
 private:
     friend class Highlighter;
