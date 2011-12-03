@@ -23,7 +23,7 @@ struct RuleData {
 
     QString name;
     QString contentName;
-    QString include;
+    QString includeName;
     QString beginPattern;
     QString endPattern;
     QString matchPattern;
@@ -165,7 +165,7 @@ RulePtr GrammarPrivate::makeRule(const QVariantMap& ruleData)
         rule->contentName = ruleData.value("contentName").toString();
     else
         rule->contentName = rule->name;
-    rule->include = ruleData.value("include").toString();
+    rule->includeName = ruleData.value("include").toString();
     if (ruleData.contains("begin")) {
         rule->beginPattern = ruleData.value("begin").toString();
         rule->begin.setPattern(rule->beginPattern);
@@ -230,26 +230,26 @@ void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
     QMutableListIterator<WeakRulePtr> iter(parentRule->patterns);
     while (iter.hasNext()) {
         RulePtr rule = iter.next();
-        if (rule->include != QString()) {
-            if (rule->include == "$base") {
+        if (rule->includeName != QString()) {
+            if (rule->includeName == "$base") {
                 iter.setValue(baseRule);
-            } else if (rule->include == "$self") {
+            } else if (rule->includeName == "$self") {
                 iter.setValue(d->root);
-            } else if (d->repository.contains(rule->include)) {
-                rule = d->repository.value(rule->include);
+            } else if (d->repository.contains(rule->includeName)) {
+                rule = d->repository.value(rule->includeName);
                 iter.setValue(rule);
                 resolveChildRules(syntaxData, baseRule, rule);
-            } else if (d->grammars.contains(rule->include)) {
-                iter.setValue(d->grammars.value(rule->include).root());
-            } else if (syntaxData.contains(rule->include)) {
-                QVariantMap data = syntaxData[rule->include];
+            } else if (d->grammars.contains(rule->includeName)) {
+                iter.setValue(d->grammars.value(rule->includeName).root());
+            } else if (syntaxData.contains(rule->includeName)) {
+                QVariantMap data = syntaxData[rule->includeName];
                 Grammar g;
                 g.readSyntaxData(data);
                 g.resolveChildRules(syntaxData, baseRule);
                 iter.setValue(g.root());
-                d->grammars[rule->include] = g;
+                d->grammars[rule->includeName] = g;
             } else {
-                qWarning() << "Pattern not in repository" << rule->include;
+                qWarning() << "Pattern not in repository" << rule->includeName;
                 iter.remove();
             }
         } else {
