@@ -33,6 +33,7 @@ struct RuleData {
     QMap<int, RulePtr> beginCaptures;
     QMap<int, RulePtr> endCaptures;
     QList<WeakRulePtr> patterns;
+    WeakRulePtr include;
 };
 
 namespace {
@@ -232,21 +233,25 @@ void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
         RulePtr rule = iter.next();
         if (rule->includeName != QString()) {
             if (rule->includeName == "$base") {
-                iter.setValue(baseRule);
+                rule->include = baseRule;
+//                iter.setValue(baseRule);
             } else if (rule->includeName == "$self") {
-                iter.setValue(d->root);
+                rule->include = d->root;
+//                iter.setValue(d->root);
             } else if (d->repository.contains(rule->includeName)) {
-                rule = d->repository.value(rule->includeName);
-                iter.setValue(rule);
-                resolveChildRules(syntaxData, baseRule, rule);
+                rule->include = d->repository.value(rule->includeName);
+//                iter.setValue(rule);
+                resolveChildRules(syntaxData, baseRule, rule->include);
             } else if (d->grammars.contains(rule->includeName)) {
-                iter.setValue(d->grammars.value(rule->includeName).root());
+                rule->include = d->grammars.value(rule->includeName).root();
+//                iter.setValue(d->grammars.value(rule->includeName).root());
             } else if (syntaxData.contains(rule->includeName)) {
                 QVariantMap data = syntaxData[rule->includeName];
                 Grammar g;
                 g.readSyntaxData(data);
                 g.resolveChildRules(syntaxData, baseRule);
-                iter.setValue(g.root());
+                rule->include = g.root();
+//                iter.setValue(g.root());
                 d->grammars[rule->includeName] = g;
             } else {
                 qWarning() << "Pattern not in repository" << rule->includeName;
@@ -307,8 +312,8 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
                     foundMatch.swap(match);
                 }
             }
-        } else {
-            searchPatterns(rule, index, end, base, foundRule, foundMatchType, foundMatch);
+        } else if (rule->include) {
+            searchPatterns(rule->include, index, end, base, foundRule, foundMatchType, foundMatch);
         }
 
         if (!foundMatch.isEmpty()) {
