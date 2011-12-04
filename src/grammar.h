@@ -14,8 +14,7 @@ typedef QSharedPointer<RuleData> RulePtr;
 typedef QWeakPointer<RuleData> WeakRulePtr;
 
 struct RuleData {
-    bool visited;
-    RuleData() : visited(false) {}
+    RuleData() {}
 
     QString name;
     QString contentName;
@@ -30,6 +29,8 @@ struct RuleData {
     QMap<int, RulePtr> endCaptures;
     QList<RulePtr> patterns;
     WeakRulePtr include;
+
+    QMap<QString, RulePtr> referenced;
 };
 
 class Grammar

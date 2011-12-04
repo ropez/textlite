@@ -7,8 +7,6 @@ class GrammarPrivate
     friend class Grammar;
 
     RulePtr root;
-    QMap<QString, RulePtr> grammars;
-    QList<QMap<QString, RulePtr> > repositories;
 
     QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData);
     RulePtr makeRule(const QVariantMap& ruleData);
@@ -31,10 +29,7 @@ RulePtr Grammar::root() const
 
 void Grammar::compile(const QMap<QString, QVariantMap>& syntaxData, const QString& scopeName)
 {
-    d->grammars.clear();
-    d->repositories.clear();
     d->root = readSyntaxData(syntaxData[scopeName]);
-    d->grammars[scopeName] = d->root;
     QMap<QString, RulePtr> repository = readRepository(syntaxData[scopeName]);
     resolveChildRules(syntaxData, repository, d->root, d->root, d->root);
 }
@@ -56,7 +51,6 @@ QMap<QString, RulePtr> Grammar::readRepository(const QVariantMap& syntaxData) co
         QVariantMap ruleData = iter.value().toMap();
         repository["#" + iter.key()] = d->makeRule(ruleData);
     }
-    d->repositories << repository;
     return repository;
 }
 
@@ -130,9 +124,6 @@ void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
                                 const QMap<QString, RulePtr>& repository,
                                 RulePtr baseRule, RulePtr selfRule, RulePtr parentRule)
 {
-    if (parentRule->visited) return;
-    parentRule->visited = true;
-
     QListIterator<RulePtr> iter(parentRule->patterns);
     while (iter.hasNext()) {
         RulePtr rule = iter.next();
@@ -141,15 +132,19 @@ void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
                 rule->include = baseRule;
             } else if (rule->includeName == "$self") {
                 rule->include = selfRule;
+            } else if (selfRule->referenced.contains(rule->includeName)) {
+                rule->include = selfRule->referenced[rule->includeName];
             } else if (repository.contains(rule->includeName)) {
-                rule->include = repository.value(rule->includeName);
-                resolveChildRules(syntaxData, repository, baseRule, selfRule, rule->include);
-            } else if (d->grammars.contains(rule->includeName)) {
-                rule->include = d->grammars.value(rule->includeName);
+                RulePtr rRule = repository.value(rule->includeName);
+                selfRule->referenced[rule->includeName] = rRule;
+                resolveChildRules(syntaxData, repository, baseRule, selfRule, rRule);
+                rule->include = rRule;
+            } else if (baseRule->referenced.contains(rule->includeName)) {
+                rule->include = baseRule->referenced[rule->includeName];
             } else if (syntaxData.contains(rule->includeName)) {
                 QVariantMap data = syntaxData[rule->includeName];
                 RulePtr iRule = readSyntaxData(data);
-                d->grammars[rule->includeName] = iRule;
+                baseRule->referenced[rule->includeName] = iRule;
                 QMap<QString, RulePtr> iRepo = readRepository(data);
                 resolveChildRules(syntaxData, iRepo, baseRule, iRule, iRule);
                 rule->include = iRule;
