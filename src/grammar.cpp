@@ -5,10 +5,6 @@
 class GrammarPrivate
 {
     friend class Grammar;
-
-    QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData);
-    RulePtr makeRule(const QVariantMap& ruleData);
-    QList<RulePtr> makeRuleList(const QVariantList& ruleListData);
 };
 
 Grammar::Grammar()
@@ -32,7 +28,7 @@ RulePtr Grammar::readSyntaxData(const QVariantMap& syntaxData) const
 {
     QVariantMap rootData;
     rootData["patterns"] = syntaxData.value("patterns");
-    return d->makeRule(rootData);
+    return makeRule(rootData);
 }
 
 QMap<QString, RulePtr> Grammar::readRepository(const QVariantMap& syntaxData) const
@@ -43,12 +39,12 @@ QMap<QString, RulePtr> Grammar::readRepository(const QVariantMap& syntaxData) co
     while (iter.hasNext()) {
         iter.next();
         QVariantMap ruleData = iter.value().toMap();
-        repository["#" + iter.key()] = d->makeRule(ruleData);
+        repository["#" + iter.key()] = makeRule(ruleData);
     }
     return repository;
 }
 
-QMap<int, RulePtr> GrammarPrivate::makeCaptures(const QVariantMap& capturesData)
+QMap<int, RulePtr> Grammar::makeCaptures(const QVariantMap& capturesData) const
 {
     QMap<int, RulePtr> captures;
     QMapIterator<QString, QVariant> iter(capturesData);
@@ -61,7 +57,7 @@ QMap<int, RulePtr> GrammarPrivate::makeCaptures(const QVariantMap& capturesData)
     return captures;
 }
 
-RulePtr GrammarPrivate::makeRule(const QVariantMap& ruleData)
+RulePtr Grammar::makeRule(const QVariantMap& ruleData) const
 {
     RulePtr rule(new RuleData);
 
@@ -103,7 +99,7 @@ RulePtr GrammarPrivate::makeRule(const QVariantMap& ruleData)
     return rule;
 }
 
-QList<RulePtr> GrammarPrivate::makeRuleList(const QVariantList& ruleListData)
+QList<RulePtr> Grammar::makeRuleList(const QVariantList& ruleListData) const
 {
     QList<RulePtr> rules;
     QListIterator<QVariant> iter(ruleListData);
@@ -116,7 +112,7 @@ QList<RulePtr> GrammarPrivate::makeRuleList(const QVariantList& ruleListData)
 
 void Grammar::resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
                                 const QMap<QString, RulePtr>& repository,
-                                RulePtr baseRule, RulePtr selfRule, RulePtr parentRule)
+                                RulePtr baseRule, RulePtr selfRule, RulePtr parentRule) const
 {
     QListIterator<RulePtr> iter(parentRule->patterns);
     while (iter.hasNext()) {
