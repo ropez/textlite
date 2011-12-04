@@ -43,16 +43,13 @@ public:
 
     void compile(const QMap<QString, QVariantMap>& syntaxData, const QString& scopeName);
 
+private:
     RulePtr readSyntaxData(const QVariantMap &syntaxData) const;
     QMap<QString, RulePtr> readRepository(const QVariantMap& syntaxData) const;
 
     void resolveChildRules(const QMap<QString, QVariantMap>& syntaxData,
                            const QMap<QString, RulePtr>& repository,
                            RulePtr baseRule, RulePtr selfRule, RulePtr parentRule);
-
-private:
-    friend class Highlighter;
-    friend class HighlighterPrivate;
 
     QSharedPointer<GrammarPrivate> d;
 };
