@@ -20,7 +20,8 @@ SOURCES += main.cpp\
     bundlemanager.cpp \
     regex.cpp \
     theme.cpp \
-    scopeselector.cpp
+    scopeselector.cpp \
+    grammar.cpp
 
 HEADERS  += mainwindow.h \
     navigator.h \
@@ -31,7 +32,8 @@ HEADERS  += mainwindow.h \
     bundlemanager.h \
     regex.h \
     theme.h \
-    scopeselector.h
+    scopeselector.h \
+    grammar.h
 
 FORMS += \
     navigator.ui
