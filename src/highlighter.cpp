@@ -98,7 +98,7 @@ void Highlighter::setTheme(const Theme& theme)
 void Highlighter::readSyntaxData(const QString& scopeName)
 {
     QMap<QString, QVariantMap> syntaxData = d->bundleManager->getSyntaxData();
-    d->grammar.compile(syntaxData, scopeName);
+    d->root = d->grammar.compile(syntaxData, scopeName);
 }
 
 void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
@@ -138,7 +138,7 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
 
 void Highlighter::highlightBlock(const QString &text)
 {
-    if (!d->grammar.root())
+    if (!d->root)
         return;
 
     QStack<ContextItem> contextStack;
@@ -149,7 +149,7 @@ void Highlighter::highlightBlock(const QString &text)
         contextStack = ctx->stack;
         scope = ctx->scope;
     } else {
-        contextStack.push(ContextItem(d->grammar.root()));
+        contextStack.push(ContextItem(d->root));
     }
 
 

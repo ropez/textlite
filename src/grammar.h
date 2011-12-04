@@ -39,9 +39,7 @@ public:
     Grammar();
     ~Grammar();
 
-    RulePtr root() const;
-
-    void compile(const QMap<QString, QVariantMap>& syntaxData, const QString& scopeName);
+    RulePtr compile(const QMap<QString, QVariantMap>& syntaxData, const QString& scopeName);
 
 private:
     RulePtr readSyntaxData(const QVariantMap &syntaxData) const;

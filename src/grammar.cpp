@@ -6,8 +6,6 @@ class GrammarPrivate
 {
     friend class Grammar;
 
-    RulePtr root;
-
     QMap<int, RulePtr> makeCaptures(const QVariantMap& capturesData);
     RulePtr makeRule(const QVariantMap& ruleData);
     QList<RulePtr> makeRuleList(const QVariantList& ruleListData);
@@ -22,16 +20,12 @@ Grammar::~Grammar()
 {
 }
 
-RulePtr Grammar::root() const
+RulePtr Grammar::compile(const QMap<QString, QVariantMap>& syntaxData, const QString& scopeName)
 {
-    return d->root;
-}
-
-void Grammar::compile(const QMap<QString, QVariantMap>& syntaxData, const QString& scopeName)
-{
-    d->root = readSyntaxData(syntaxData[scopeName]);
+    RulePtr root = readSyntaxData(syntaxData[scopeName]);
     QMap<QString, RulePtr> repository = readRepository(syntaxData[scopeName]);
-    resolveChildRules(syntaxData, repository, d->root, d->root, d->root);
+    resolveChildRules(syntaxData, repository, root, root, root);
+    return root;
 }
 
 RulePtr Grammar::readSyntaxData(const QVariantMap& syntaxData) const
