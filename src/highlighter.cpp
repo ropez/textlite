@@ -3,6 +3,7 @@
 #include "theme.h"
 #include "scopeselector.h"
 #include "grammar.h"
+#include "ruledata.h"
 
 #include <QTextCharFormat>
 #include <QList>

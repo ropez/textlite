@@ -1,37 +1,17 @@
 #ifndef GRAMMAR_H
 #define GRAMMAR_H
 
-#include "regex.h"
-
 #include <QtCore/QString>
 #include <QtCore/QMap>
 #include <QtCore/QVariant>
+#include <QtCore/QSharedPointer>
+#include <QtCore/QWeakPointer>
 
 class GrammarPrivate;
 
 struct RuleData;
 typedef QSharedPointer<RuleData> RulePtr;
 typedef QWeakPointer<RuleData> WeakRulePtr;
-
-struct RuleData {
-    RuleData() {}
-
-    QString name;
-    QString contentName;
-    QString includeName;
-    QString beginPattern;
-    QString endPattern;
-    QString matchPattern;
-    Regex begin;
-    Regex match;
-    QMap<int, RulePtr> captures;
-    QMap<int, RulePtr> beginCaptures;
-    QMap<int, RulePtr> endCaptures;
-    QList<RulePtr> patterns;
-    WeakRulePtr include;
-
-    QMap<QString, RulePtr> referenced;
-};
 
 class Grammar
 {

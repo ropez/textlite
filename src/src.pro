@@ -33,7 +33,8 @@ HEADERS  += mainwindow.h \
     regex.h \
     theme.h \
     scopeselector.h \
-    grammar.h
+    grammar.h \
+    ruledata.h
 
 FORMS += \
     navigator.ui

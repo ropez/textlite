@@ -1,4 +1,5 @@
 #include "grammar.h"
+#include "ruledata.h"
 
 #include <QtDebug>
 
