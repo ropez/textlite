@@ -35,6 +35,8 @@ protected:
 
 private:
     QScopedPointer<HighlighterPrivate> d;
+
+    class SearchHelper;
 };
 
 #endif // HIGHLIGHTER_H

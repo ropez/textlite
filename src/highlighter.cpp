@@ -101,7 +101,7 @@ void Highlighter::readSyntaxData(const QString& scopeName)
     d->root = d->grammar.compile(syntaxData, scopeName);
 }
 
-class SearchHelper
+class Highlighter::SearchHelper
 {
 public:
     SearchHelper(iter_t base, iter_t end, iter_t index);
@@ -123,12 +123,12 @@ private:
     Match match;
 };
 
-SearchHelper::SearchHelper(iter_t base, iter_t end, iter_t index)
+Highlighter::SearchHelper::SearchHelper(iter_t base, iter_t end, iter_t index)
     : base(base), end(end), index(index), offset(index - base)
 {
 }
 
-void SearchHelper::searchPattern(RulePtr rule, const Regex& regex, MatchType type)
+void Highlighter::SearchHelper::searchPattern(RulePtr rule, const Regex& regex, MatchType type)
 {
     if (regex.isValid()) {
         if (regex.search(base, end, index, end, match)) {
@@ -141,7 +141,7 @@ void SearchHelper::searchPattern(RulePtr rule, const Regex& regex, MatchType typ
     }
 }
 
-void SearchHelper::searchPatterns(RulePtr parentRule)
+void Highlighter::SearchHelper::searchPatterns(RulePtr parentRule)
 {
     foreach (RulePtr rule, parentRule->patterns) {
         searchPattern(rule, rule->begin, Begin);
@@ -159,7 +159,7 @@ void SearchHelper::searchPatterns(RulePtr parentRule)
     }
 }
 
-void SearchHelper::searchContext(const ContextItem& context)
+void Highlighter::SearchHelper::searchContext(const ContextItem& context)
 {
     searchPattern(context.rule, context.end, End);
     searchPatterns(context.rule);
