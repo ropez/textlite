@@ -54,7 +54,7 @@ QString Editor::scopeForCursor(const QTextCursor& cursor) const
     EditorBlockData *blockData = EditorBlockData::forBlock(cursor.block());
     QMap<QTextCursor, QStringList>::const_iterator it = blockData->scopes.lowerBound(cursor);
     if (it != blockData->scopes.end() && it.key().anchor() <= cursor.position()) {
-        return it.value().join("<br/>");
+        return it.value().join("\n");
     }
     return QString();
 }
@@ -159,7 +159,7 @@ bool Editor::event(QEvent *e)
         if (!c.isNull()) {
             QString scope = scopeForCursor(c);
             QToolTip::showText(he->globalPos(),
-                               QString("L:%1 C:%2<br/>%3")
+                               QString("<pre>L:%1 C:%2\n%3</pre>")
                                .arg(c.blockNumber())
                                .arg(c.columnNumber())
                                .arg(scope));
