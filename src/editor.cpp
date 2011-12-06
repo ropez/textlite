@@ -82,23 +82,23 @@ bool Editor::isLeadingWhitespace(const QTextCursor& cursor) const
     return false;
 }
 
-void Editor::doIndent(QTextCursor c)
+void Editor::doIndent(QTextCursor cursor)
 {
-    c.beginEditBlock();
-    c.movePosition(QTextCursor::StartOfBlock);
+    cursor.beginEditBlock();
+    cursor.movePosition(QTextCursor::StartOfBlock);
     int indent = -1;
-    if (currentIndent(c, &indent)) {
-        c.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, indent);
-        c.removeSelectedText();
+    if (currentIndent(cursor, &indent)) {
+        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, indent);
+        cursor.removeSelectedText();
     }
-    QTextCursor p = c;
-    while (p.movePosition(QTextCursor::PreviousBlock)) {
-        if (currentIndent(p, &indent)) {
-            c.insertText(QString(" ").repeated(indent));
+    QTextCursor previous = cursor;
+    while (previous.movePosition(QTextCursor::PreviousBlock)) {
+        if (currentIndent(previous, &indent)) {
+            cursor.insertText(QString(" ").repeated(indent));
             break;
         }
     }
-    c.endEditBlock();
+    cursor.endEditBlock();
 }
 
 void Editor::doKillLine(QTextCursor cursor)
@@ -133,16 +133,16 @@ void Editor::keyPressEvent(QKeyEvent* e)
         QTextEdit::keyPressEvent(e);
         doIndent(textCursor());
     } else if (e->key() == Qt::Key_Tab) {
-        QTextCursor c = textCursor();
+        QTextCursor cursor = textCursor();
         do {
-            c.insertText(" ");
-        } while (c.positionInBlock() % 4);
+            cursor.insertText(" ");
+        } while (cursor.positionInBlock() % 4);
     } else if (e->key() == Qt::Key_Backspace && e->modifiers() == Qt::NoModifier) {
-        QTextCursor c = textCursor();
-        if (isLeadingWhitespace(c)) {
+        QTextCursor cursor = textCursor();
+        if (isLeadingWhitespace(cursor)) {
             do {
-                c.deletePreviousChar();
-            } while (c.positionInBlock() % 4);
+                cursor.deletePreviousChar();
+            } while (cursor.positionInBlock() % 4);
         } else {
             QTextEdit::keyPressEvent(e);
         }
@@ -154,18 +154,18 @@ void Editor::keyPressEvent(QKeyEvent* e)
 bool Editor::event(QEvent *e)
 {
     if (e->type() == QEvent::ToolTip) {
-        QHelpEvent *he = static_cast<QHelpEvent*>(e);
-        QTextCursor c = cursorForPosition(he->pos());
-        if (!c.isNull()) {
-            QString scope = scopeForCursor(c);
-            QToolTip::showText(he->globalPos(),
+        QHelpEvent *helpEvent = static_cast<QHelpEvent*>(e);
+        QTextCursor cursor = cursorForPosition(helpEvent->pos());
+        if (!cursor.isNull()) {
+            QString scope = scopeForCursor(cursor);
+            QToolTip::showText(helpEvent->globalPos(),
                                QString("<pre>L:%1 C:%2\n%3</pre>")
-                               .arg(c.blockNumber())
-                               .arg(c.columnNumber())
+                               .arg(cursor.blockNumber())
+                               .arg(cursor.columnNumber())
                                .arg(scope));
         } else {
             QToolTip::hideText();
-            he->ignore();
+            helpEvent->ignore();
         }
         return true;
     } else {
