@@ -284,7 +284,7 @@ void Highlighter::setScope(int start, int count, const QStack<QString>& scope)
     QTextCursor cursor(currentBlock());
     cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, start);
     cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, count);
-    currentBlockData->scopes[cursor] = QStringList(QStringList::fromVector(scope)).join("<br/>");
+    currentBlockData->scopes[cursor] = QStringList(QStringList::fromVector(scope));
 
     setFormat(start, count, d->theme.findFormat(scope));
 }

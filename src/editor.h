@@ -13,7 +13,7 @@ public:
 
     static EditorBlockData* forBlock(QTextBlock block);
 
-    QMap<QTextCursor, QString> scopes;
+    QMap<QTextCursor, QStringList> scopes;
 
     QScopedPointer<HighlighterContext> context;
 };

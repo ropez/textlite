@@ -52,9 +52,9 @@ QString Editor::scopeForCursor(const QTextCursor& cursor) const
         return QString();
 
     EditorBlockData *blockData = EditorBlockData::forBlock(cursor.block());
-    QMap<QTextCursor, QString>::const_iterator it = blockData->scopes.lowerBound(cursor);
+    QMap<QTextCursor, QStringList>::const_iterator it = blockData->scopes.lowerBound(cursor);
     if (it != blockData->scopes.end() && it.key().anchor() <= cursor.position()) {
-        return it.value();
+        return it.value().join("<br/>");
     }
     return QString();
 }
