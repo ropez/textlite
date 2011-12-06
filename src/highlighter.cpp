@@ -203,9 +203,7 @@ void Highlighter::highlightBlock(const QString &text)
         }
 
         // Highlight skipped section
-        if (s.foundMatch.pos() != s.offset) {
-            setScope(s.offset, s.foundMatch.pos() - s.offset, scope);
-        }
+        setScope(s.offset, s.foundMatch.pos() - s.offset, scope);
 
         // Leave nested context
         if (s.foundMatchType == End) {
@@ -214,9 +212,6 @@ void Highlighter::highlightBlock(const QString &text)
         }
 
         Q_ASSERT(base + s.foundMatch.pos() <= end);
-
-        scope.push(s.foundRule->name);
-        setScope(s.foundMatch.pos(), s.foundMatch.len(), scope);
 
         QMap<int, RulePtr> captures;
         switch (s.foundMatchType) {
@@ -231,19 +226,27 @@ void Highlighter::highlightBlock(const QString &text)
             break;
         }
 
-        // Highlight captures
+        // Highlight
+        scope.push(s.foundRule->name);
+        int pos = s.foundMatch.pos();
+        int end = pos + s.foundMatch.len();
         for (int c = 1; c < s.foundMatch.size(); c++) {
             if (s.foundMatch.matched(c)) {
                 if (captures.contains(c)) {
                     Q_ASSERT(s.foundMatch.pos(c) >= s.foundMatch.pos());
                     Q_ASSERT(s.foundMatch.pos(c) + s.foundMatch.len(c) <= s.foundMatch.pos() + s.foundMatch.len());
 
+                    int capPos = s.foundMatch.pos(c);
+                    int capLen = s.foundMatch.len(c);
+                    setScope(pos, capPos, scope);
                     scope.push(captures[c]->name);
-                    setScope(s.foundMatch.pos(c), s.foundMatch.len(c), scope);
+                    setScope(capPos, capPos + capLen, scope);
                     scope.pop();
+                    pos = capPos + capLen;
                 }
             }
         }
+        setScope(pos, end - pos, scope);
         scope.pop();
 
         // Enter nested context
@@ -273,6 +276,9 @@ void Highlighter::highlightBlock(const QString &text)
 
 void Highlighter::setScope(int start, int count, const QStack<QString>& scope)
 {
+    if (count == 0)
+        return;
+
     EditorBlockData *currentBlockData = EditorBlockData::forBlock(currentBlock());
 
     QTextCursor cursor(currentBlock());
