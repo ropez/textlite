@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QTextBlock>
 #include <QKeyEvent>
+#include <QToolTip>
 
 #include <QtDebug>
 
@@ -156,11 +157,15 @@ bool Editor::event(QEvent *e)
         QHelpEvent *he = static_cast<QHelpEvent*>(e);
         QTextCursor c = cursorForPosition(he->pos());
         if (!c.isNull()) {
-            setToolTip(QString("L:%1 C:%2<br/>%3")
-                       .arg(c.blockNumber())
-                       .arg(c.columnNumber())
-                       .arg(scopeForCursor(c)));
-            QTextEdit::event(e);
+            QString scope = scopeForCursor(c);
+            QToolTip::showText(he->globalPos(),
+                               QString("L:%1 C:%2<br/>%3")
+                               .arg(c.blockNumber())
+                               .arg(c.columnNumber())
+                               .arg(scope));
+        } else {
+            QToolTip::hideText();
+            he->ignore();
         }
         return true;
     } else {
