@@ -3,11 +3,21 @@
 
 #include <QSyntaxHighlighter>
 #include <QScopedPointer>
+#include <QtCore/QStack>
 
 class Theme;
 class BundleManager;
 class HighlighterPrivate;
 
+struct ContextItem;
+class HighlighterContext
+{
+public:
+    ~HighlighterContext();
+
+    QStack<ContextItem> stack;
+    QStack<QString> scope;
+};
 
 class Highlighter : public QSyntaxHighlighter
 {

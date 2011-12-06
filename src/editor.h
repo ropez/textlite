@@ -2,6 +2,19 @@
 #define EDITOR_H
 
 #include <QTextEdit>
+#include <QtGui/QTextBlockUserData>
+
+class HighlighterContext;
+class EditorBlockData : public QTextBlockUserData
+{
+public:
+    EditorBlockData();
+    ~EditorBlockData();
+
+    static EditorBlockData* forBlock(QTextBlock block);
+
+    QScopedPointer<HighlighterContext> context;
+};
 
 class Editor : public QTextEdit
 {

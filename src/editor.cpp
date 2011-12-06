@@ -1,4 +1,5 @@
 #include "editor.h"
+#include "highlighter.h"
 
 #include <QAction>
 #include <QFile>
@@ -6,6 +7,25 @@
 #include <QKeyEvent>
 
 #include <QtDebug>
+
+EditorBlockData::EditorBlockData()
+{
+}
+
+EditorBlockData::~EditorBlockData()
+{
+}
+
+EditorBlockData* EditorBlockData::forBlock(QTextBlock block)
+{
+    if (!block.isValid())
+        return 0;
+
+    if (!block.userData()) {
+        block.setUserData(new EditorBlockData);
+    }
+    return static_cast<EditorBlockData*>(block.userData());
+}
 
 Editor::Editor(QWidget *parent) :
     QTextEdit(parent)

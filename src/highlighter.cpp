@@ -4,6 +4,7 @@
 #include "scopeselector.h"
 #include "grammar.h"
 #include "ruledata.h"
+#include "editor.h"
 
 #include <QTextCharFormat>
 #include <QList>
@@ -12,10 +13,6 @@
 
 #include <QtDebug>
 
-namespace {
-typedef QString::const_iterator iter_t;
-enum MatchType { Normal, Begin, End };
-
 struct ContextItem {
     explicit ContextItem(RulePtr p = RulePtr()) : rule(p) {}
 
@@ -23,6 +20,10 @@ struct ContextItem {
     QString formattedEndPattern;
     Regex end;
 };
+
+namespace {
+typedef QString::const_iterator iter_t;
+enum MatchType { Normal, Begin, End };
 
 void _HashCombine(int& h, int hh) {
     h = (h << 4) ^ (h >> 28) ^ hh;
@@ -54,12 +55,10 @@ int _Hash(const QStack<ContextItem>& stack) {
     }
     return h;
 }
+}
 
-struct Context : public QTextBlockUserData {
-    QStack<ContextItem> stack;
-    QStack<QString> scope;
-};
-
+HighlighterContext::~HighlighterContext()
+{
 }
 
 class HighlighterPrivate
@@ -144,9 +143,9 @@ void Highlighter::highlightBlock(const QString &text)
 
     QStack<ContextItem> contextStack;
     QStack<QString> scope;
-    QTextBlock prevBlock = currentBlock().previous();
-    if (prevBlock.userData()) {
-        Context* ctx = static_cast<Context*>(prevBlock.userData());
+    EditorBlockData *prevBlockData = EditorBlockData::forBlock(currentBlock().previous());
+    if (prevBlockData && prevBlockData->context) {
+        HighlighterContext* ctx = prevBlockData->context.data();
         contextStack = ctx->stack;
         scope = ctx->scope;
     } else {
@@ -247,14 +246,15 @@ void Highlighter::highlightBlock(const QString &text)
         index = base + foundMatch.pos() + foundMatch.len();
     }
 
+    EditorBlockData *currentBlockData = EditorBlockData::forBlock(currentBlock());
+    Q_ASSERT(currentBlockData != 0);
     if (contextStack.size() > 1) {
-        Context* ctx = new Context;
-        ctx->stack = contextStack;
-        ctx->scope = scope;
-        setCurrentBlockUserData(ctx);
-        setCurrentBlockState(_Hash(ctx->stack));
+        currentBlockData->context.reset(new HighlighterContext);
+        currentBlockData->context->stack = contextStack;
+        currentBlockData->context->scope = scope;
+        setCurrentBlockState(_Hash(contextStack));
     } else {
-        setCurrentBlockUserData(0);
+        currentBlockData->context.reset();
         setCurrentBlockState(-1);
     }
 }
