@@ -101,31 +101,54 @@ void Highlighter::readSyntaxData(const QString& scopeName)
     d->root = d->grammar.compile(syntaxData, scopeName);
 }
 
-void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
-                                        RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch)
+class SearchHelper
 {
-    const int offset = index - base;
+public:
+    SearchHelper(iter_t base, iter_t end, iter_t index);
 
+    const iter_t base;
+    const iter_t end;
+    const iter_t index;
+    const int offset;
+
+    Match foundMatch;
+    MatchType foundMatchType;
+    RulePtr foundRule;
+
+    void searchPattern(RulePtr rule, const Regex& regex, MatchType type);
+    void searchPatterns(RulePtr parentRule);
+    void searchContext(const ContextItem& context);
+
+private:
     Match match;
+};
+
+SearchHelper::SearchHelper(iter_t base, iter_t end, iter_t index)
+    : base(base), end(end), index(index), offset(index - base)
+{
+}
+
+void SearchHelper::searchPattern(RulePtr rule, const Regex& regex, MatchType type)
+{
+    if (regex.isValid()) {
+        if (regex.search(base, end, index, end, match)) {
+            if (foundMatch.isEmpty() || match.pos() < foundMatch.pos()) {
+                foundRule = rule;
+                foundMatchType = type;
+                foundMatch.swap(match);
+            }
+        }
+    }
+}
+
+void SearchHelper::searchPatterns(RulePtr parentRule)
+{
     foreach (RulePtr rule, parentRule->patterns) {
-        if (rule->begin.isValid()) {
-            if (rule->begin.search(base, end, index, end, match)) {
-                if (foundMatch.isEmpty() || match.pos() < foundMatch.pos()) {
-                    foundRule = rule;
-                    foundMatchType = Begin;
-                    foundMatch.swap(match);
-                }
-            }
-        } else if (rule->match.isValid()) {
-            if (rule->match.search(base, end, index, end, match)) {
-                if (foundMatch.isEmpty() || match.pos() < foundMatch.pos()) {
-                    foundRule = rule;
-                    foundMatchType = Normal;
-                    foundMatch.swap(match);
-                }
-            }
-        } else if (rule->include) {
-            searchPatterns(rule->include, index, end, base, foundRule, foundMatchType, foundMatch);
+        searchPattern(rule, rule->begin, Begin);
+        searchPattern(rule, rule->match, Normal);
+
+        if (rule->include) {
+            searchPatterns(rule->include);
         }
 
         if (!foundMatch.isEmpty()) {
@@ -134,6 +157,12 @@ void HighlighterPrivate::searchPatterns(const RulePtr& parentRule, const iter_t 
                 break; // Don't need to continue
         }
     }
+}
+
+void SearchHelper::searchContext(const ContextItem& context)
+{
+    searchPattern(context.rule, context.end, End);
+    searchPatterns(context.rule);
 }
 
 void Highlighter::highlightBlock(const QString &text)
@@ -152,7 +181,6 @@ void Highlighter::highlightBlock(const QString &text)
         contextStack.push(ContextItem(d->root));
     }
 
-
     const iter_t base = text.begin();
     const iter_t end = text.end();
 
@@ -160,72 +188,54 @@ void Highlighter::highlightBlock(const QString &text)
     while (true) {
         Q_ASSERT(contextStack.size() > 0);
 
-        const int offset = index - base;
-
-        RulePtr foundRule;
-        MatchType foundMatchType = Normal;
-        Match foundMatch;
-
-        {
-            ContextItem& context = contextStack.top();
-
-            if (context.end.isValid()) {
-                RulePtr rule = context.rule;
-                Match match;
-                if (context.end.search(base, end, index, end, match)) {
-                    foundRule = rule;
-                    foundMatchType = End;
-                    foundMatch.swap(match);
-                }
-            }
-
-            d->searchPatterns(context.rule, index, end, base, foundRule, foundMatchType, foundMatch);
-        }
+        // Find next pattern
+        SearchHelper s(base, end, index);
+        s.searchContext(contextStack.top());
 
         // Did we find anything to highlight?
-        if (foundMatch.isEmpty()) {
-            setFormat(offset, text.length() - offset, d->theme.findFormat(scope));
+        if (s.foundMatch.isEmpty()) {
+            setFormat(s.offset, text.length() - s.offset, d->theme.findFormat(scope));
             break;
         }
 
         // Highlight skipped section
-        if (foundMatch.pos() != offset) {
-            setFormat(offset, foundMatch.pos() - offset, d->theme.findFormat(scope));
+        if (s.foundMatch.pos() != s.offset) {
+            setFormat(s.offset, s.foundMatch.pos() - s.offset, d->theme.findFormat(scope));
         }
 
         // Leave nested context
-        if (foundMatchType == End) {
+        if (s.foundMatchType == End) {
             contextStack.pop();
             scope.pop();
         }
 
-        Q_ASSERT(base + foundMatch.pos() <= end);
+        Q_ASSERT(base + s.foundMatch.pos() <= end);
 
-        scope.push(foundRule->name);
-        setFormat(foundMatch.pos(), foundMatch.len(), d->theme.findFormat(scope));
+        scope.push(s.foundRule->name);
+        setFormat(s.foundMatch.pos(), s.foundMatch.len(), d->theme.findFormat(scope));
 
         QMap<int, RulePtr> captures;
-        switch (foundMatchType) {
+        switch (s.foundMatchType) {
         case Normal:
-            captures = foundRule->captures;
+            captures = s.foundRule->captures;
             break;
         case Begin:
-            captures = foundRule->beginCaptures;
+            captures = s.foundRule->beginCaptures;
             break;
         case End:
-            captures = foundRule->endCaptures;
+            captures = s.foundRule->endCaptures;
             break;
         }
 
         // Highlight captures
-        for (int c = 1; c < foundMatch.size(); c++) {
-            if (foundMatch.matched(c)) {
+        for (int c = 1; c < s.foundMatch.size(); c++) {
+            if (s.foundMatch.matched(c)) {
                 if (captures.contains(c)) {
-                    Q_ASSERT(foundMatch.pos(c) >= foundMatch.pos());
-                    Q_ASSERT(foundMatch.pos(c) + foundMatch.len(c) <= foundMatch.pos() + foundMatch.len());
+                    Q_ASSERT(s.foundMatch.pos(c) >= s.foundMatch.pos());
+                    Q_ASSERT(s.foundMatch.pos(c) + s.foundMatch.len(c) <= s.foundMatch.pos() + s.foundMatch.len());
 
                     scope.push(captures[c]->name);
-                    setFormat(foundMatch.pos(c), foundMatch.len(c), d->theme.findFormat(scope));
+                    setFormat(s.foundMatch.pos(c), s.foundMatch.len(c), d->theme.findFormat(scope));
                     scope.pop();
                 }
             }
@@ -233,17 +243,17 @@ void Highlighter::highlightBlock(const QString &text)
         scope.pop();
 
         // Enter nested context
-        if (foundMatchType == Begin) {
+        if (s.foundMatchType == Begin) {
             // Compile the regular expression that will end this context,
             // and may include captures from the found match
-            ContextItem item(foundRule);
-            item.formattedEndPattern = foundMatch.format(foundRule->endPattern);
+            ContextItem item(s.foundRule);
+            item.formattedEndPattern = s.foundMatch.format(s.foundRule->endPattern);
             item.end.setPattern(item.formattedEndPattern);
             contextStack.push(item);
-            scope.push(foundRule->contentName);
+            scope.push(s.foundRule->contentName);
         }
 
-        index = base + foundMatch.pos() + foundMatch.len();
+        index = base + s.foundMatch.pos() + s.foundMatch.len();
     }
 
     EditorBlockData *currentBlockData = EditorBlockData::forBlock(currentBlock());
