@@ -131,17 +131,17 @@ bool Regex::setPattern(const QString& pattern)
     return isValid();
 }
 
-bool Regex::search(const QString &target, Match &match)
+bool Regex::search(const QString &target, Match &match) const
 {
     return search(target.begin(), target.end(), match);
 }
 
-bool Regex::search(iterator begin, iterator end, Match &match)
+bool Regex::search(iterator begin, iterator end, Match &match) const
 {
     return search(begin, end, begin, end, match);
 }
 
-bool Regex::search(iterator begin, iterator end, iterator offset, iterator range, Match &match)
+bool Regex::search(iterator begin, iterator end, iterator offset, iterator range, Match &match) const
 {
     MatchPrivate* m = match.d_func();
 

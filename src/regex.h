@@ -132,12 +132,12 @@ public:
     /**
       * Shortcut for search(target.begin(), target.end(), match)
       */
-    bool search(const QString& target, Match& match);
+    bool search(const QString& target, Match& match) const;
 
     /**
       * Shortcut for search(begin, end, begin, end, match)
       */
-    bool search(iterator begin, iterator end, Match& match);
+    bool search(iterator begin, iterator end, Match& match) const;
 
     /**
       * Search for this regular expression within the given boundaries.
@@ -150,7 +150,7 @@ public:
       * end, provides the boundaries for lookbehind, lookahead, line boundaries,
       * word boundaries and so on.
       */
-    bool search(iterator begin, iterator end, iterator offset, iterator range, Match& match);
+    bool search(iterator begin, iterator end, iterator offset, iterator range, Match& match) const;
 
 private:
     Q_DECLARE_PRIVATE(Regex)
