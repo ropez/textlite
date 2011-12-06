@@ -181,6 +181,10 @@ void Highlighter::highlightBlock(const QString &text)
         contextStack.push(ContextItem(d->root));
     }
 
+    EditorBlockData *currentBlockData = EditorBlockData::forBlock(currentBlock());
+    Q_ASSERT(currentBlockData != 0);
+    currentBlockData->scopes.clear();
+
     const iter_t base = text.begin();
     const iter_t end = text.end();
 
@@ -256,8 +260,6 @@ void Highlighter::highlightBlock(const QString &text)
         index = base + s.foundMatch.pos() + s.foundMatch.len();
     }
 
-    EditorBlockData *currentBlockData = EditorBlockData::forBlock(currentBlock());
-    Q_ASSERT(currentBlockData != 0);
     if (contextStack.size() > 1) {
         currentBlockData->context.reset(new HighlighterContext);
         currentBlockData->context->stack = contextStack;
@@ -271,5 +273,12 @@ void Highlighter::highlightBlock(const QString &text)
 
 void Highlighter::setScope(int start, int count, const QStack<QString>& scope)
 {
+    EditorBlockData *currentBlockData = EditorBlockData::forBlock(currentBlock());
+
+    QTextCursor cursor(currentBlock());
+    cursor.movePosition(QTextCursor::Right, QTextCursor::MoveAnchor, start);
+    cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, count);
+    currentBlockData->scopes[cursor] = QStringList(QStringList::fromVector(scope)).join("<br/>");
+
     setFormat(start, count, d->theme.findFormat(scope));
 }

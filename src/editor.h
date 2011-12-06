@@ -13,6 +13,8 @@ public:
 
     static EditorBlockData* forBlock(QTextBlock block);
 
+    QMap<QTextCursor, QString> scopes;
+
     QScopedPointer<HighlighterContext> context;
 };
 
@@ -22,11 +24,14 @@ class Editor : public QTextEdit
 public:
     explicit Editor(QWidget *parent = 0);
 
+    QString scopeForCursor(const QTextCursor& cursor) const;
+
     bool currentIndent(const QTextCursor& cursor, int* indent) const;
     bool isLeadingWhitespace(const QTextCursor& cursor) const;
 
     void doIndent(QTextCursor c);
     void doKillLine(QTextCursor cursor);
+
 
 public slots:
     void indentLine();
@@ -34,6 +39,7 @@ public slots:
 
 protected:
     void keyPressEvent(QKeyEvent* e);
+    bool event(QEvent *e);
 
 private:
 };

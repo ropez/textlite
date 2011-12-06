@@ -44,6 +44,20 @@ Editor::Editor(QWidget *parent) :
     }
 }
 
+QString Editor::scopeForCursor(const QTextCursor& cursor) const
+{
+    QTextBlock block = cursor.block();
+    if (!block.isValid())
+        return QString();
+
+    EditorBlockData *blockData = EditorBlockData::forBlock(cursor.block());
+    QMap<QTextCursor, QString>::const_iterator it = blockData->scopes.lowerBound(cursor);
+    if (it != blockData->scopes.end() && it.key().anchor() <= cursor.position()) {
+        return it.value();
+    }
+    return QString();
+}
+
 bool Editor::currentIndent(const QTextCursor& cursor, int* indent) const
 {
     QRegExp exp("^(\\s*)((?=\\S)|$)");
@@ -133,5 +147,23 @@ void Editor::keyPressEvent(QKeyEvent* e)
         }
     } else {
         QTextEdit::keyPressEvent(e);
+    }
+}
+
+bool Editor::event(QEvent *e)
+{
+    if (e->type() == QEvent::ToolTip) {
+        QHelpEvent *he = static_cast<QHelpEvent*>(e);
+        QTextCursor c = cursorForPosition(he->pos());
+        if (!c.isNull()) {
+            setToolTip(QString("L:%1 C:%2<br/>%3")
+                       .arg(c.blockNumber())
+                       .arg(c.columnNumber())
+                       .arg(scopeForCursor(c)));
+            QTextEdit::event(e);
+        }
+        return true;
+    } else {
+        return QTextEdit::event(e);
     }
 }
