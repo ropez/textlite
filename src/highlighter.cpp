@@ -194,13 +194,13 @@ void Highlighter::highlightBlock(const QString &text)
 
         // Did we find anything to highlight?
         if (s.foundMatch.isEmpty()) {
-            setFormat(s.offset, text.length() - s.offset, d->theme.findFormat(scope));
+            setScope(s.offset, text.length() - s.offset, scope);
             break;
         }
 
         // Highlight skipped section
         if (s.foundMatch.pos() != s.offset) {
-            setFormat(s.offset, s.foundMatch.pos() - s.offset, d->theme.findFormat(scope));
+            setScope(s.offset, s.foundMatch.pos() - s.offset, scope);
         }
 
         // Leave nested context
@@ -212,7 +212,7 @@ void Highlighter::highlightBlock(const QString &text)
         Q_ASSERT(base + s.foundMatch.pos() <= end);
 
         scope.push(s.foundRule->name);
-        setFormat(s.foundMatch.pos(), s.foundMatch.len(), d->theme.findFormat(scope));
+        setScope(s.foundMatch.pos(), s.foundMatch.len(), scope);
 
         QMap<int, RulePtr> captures;
         switch (s.foundMatchType) {
@@ -235,7 +235,7 @@ void Highlighter::highlightBlock(const QString &text)
                     Q_ASSERT(s.foundMatch.pos(c) + s.foundMatch.len(c) <= s.foundMatch.pos() + s.foundMatch.len());
 
                     scope.push(captures[c]->name);
-                    setFormat(s.foundMatch.pos(c), s.foundMatch.len(c), d->theme.findFormat(scope));
+                    setScope(s.foundMatch.pos(c), s.foundMatch.len(c), scope);
                     scope.pop();
                 }
             }
@@ -267,4 +267,9 @@ void Highlighter::highlightBlock(const QString &text)
         currentBlockData->context.reset();
         setCurrentBlockState(-1);
     }
+}
+
+void Highlighter::setScope(int start, int count, const QStack<QString>& scope)
+{
+    setFormat(start, count, d->theme.findFormat(scope));
 }

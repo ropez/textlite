@@ -34,6 +34,9 @@ protected:
     void highlightBlock(const QString &text);
 
 private:
+    void setScope(int start, int count, const QStack<QString>& scope);
+
+private:
     QScopedPointer<HighlighterPrivate> d;
 
     class SearchHelper;
