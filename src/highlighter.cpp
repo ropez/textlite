@@ -71,9 +71,6 @@ class HighlighterPrivate
     Grammar grammar;
 
     Theme theme;
-
-    void searchPatterns(const RulePtr& parentRule, const iter_t index, const iter_t end, const iter_t base,
-                        RulePtr& foundRule, MatchType& foundMatchType, Match& foundMatch);
 };
 
 Highlighter::Highlighter(QTextDocument* document, BundleManager *bundleManager) :
