@@ -97,6 +97,9 @@ void Window::readFile(const QString& name)
 
         QFile file(name);
         if (file.open(QFile::ReadOnly)) {
+            for (int i = 0; i < doc->blockCount(); i++) {
+                EditorBlockData::forBlock(doc->findBlockByNumber(i))->scopes.clear();
+            }
             doc->setPlainText(QString::fromUtf8(file.readAll()));
         } else {
             qWarning() << "File not found:" << name;
