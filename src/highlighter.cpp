@@ -141,11 +141,16 @@ void Highlighter::SearchHelper::searchPattern(RulePtr rule, const Regex& regex, 
 void Highlighter::SearchHelper::searchPatterns(RulePtr parentRule)
 {
     foreach (RulePtr rule, parentRule->patterns) {
-        searchPattern(rule, rule->begin, Begin);
-        searchPattern(rule, rule->match, Normal);
+        while (rule->include) {
+            rule = rule->include;
+        }
 
-        if (rule->include) {
-            searchPatterns(rule->include);
+        if (rule->begin.isValid()) {
+            searchPattern(rule, rule->begin, Begin);
+        } else if (rule->match.isValid()) {
+            searchPattern(rule, rule->match, Normal);
+        } else {
+            searchPatterns(rule);
         }
 
         if (!foundMatch.isEmpty()) {
