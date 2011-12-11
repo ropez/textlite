@@ -91,6 +91,10 @@ void Window::findNext()
 {
     editor->setFocus();
     QTextCursor found = editor->document()->find(searchField->text(), editor->textCursor());
+    if (found.isNull()) {
+        found = editor->document()->find(searchField->text());
+        // TODO: Visual wrap-around feedback
+    }
     if (!found.isNull()) {
         editor->setTextCursor(found);
     }
@@ -101,6 +105,12 @@ void Window::findPrevious()
     editor->setFocus();
     QTextCursor found = editor->document()->find(searchField->text(), editor->textCursor(),
                                                  QTextDocument::FindBackward);
+    if (found.isNull()) {
+        QTextCursor cursor(editor->document());
+        cursor.movePosition(QTextCursor::End);
+        found = editor->document()->find(searchField->text(), cursor, QTextDocument::FindBackward);
+        // TODO: Visual wrap-around feedback
+    }
     if (!found.isNull()) {
         editor->setTextCursor(found);
     }
