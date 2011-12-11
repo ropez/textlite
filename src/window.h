@@ -7,6 +7,7 @@
 
 class QTextDocument;
 class QFileSystemWatcher;
+class QLineEdit;
 class QTimer;
 
 class Theme;
@@ -23,6 +24,10 @@ public:
     QString currentFileName() const;
 
 public slots:
+    void find();
+    void findNext();
+    void findPrevious();
+
     void visitFile(const QString& name);
 
 private slots:
@@ -36,6 +41,9 @@ private slots:
 
 private:
     Editor* editor;
+
+    QLineEdit* searchField;
+
     BundleManager* bundleManager;
 
     QString filename;

@@ -9,6 +9,7 @@
 #include <QTimer>
 #include <QFileInfo>
 #include <QFileSystemWatcher>
+#include <QLineEdit>
 
 #include <QtDebug>
 
@@ -18,8 +19,11 @@ Window::Window(BundleManager* bman, QWidget *parent) :
 {
     QVBoxLayout *vl = new QVBoxLayout(this);
     editor = new Editor(this);
+    searchField = new QLineEdit(this);
     vl->addWidget(editor);
+    vl->addWidget(searchField);
     vl->setMargin(0);
+    vl->setSpacing(0);
 
     editor->setReadOnly(true);
     editor->setWordWrapMode(QTextOption::NoWrap);
@@ -27,6 +31,32 @@ Window::Window(BundleManager* bman, QWidget *parent) :
     watcher = new QFileSystemWatcher(this);
     reloadTimer = new QTimer(this);
     reloadTimer->setSingleShot(true);
+
+    {
+        QAction* action = new QAction("Focus editor", this);
+        action->setShortcut(QKeySequence(tr("Esc")));
+        addAction(action);
+        connect(action, SIGNAL(triggered()), editor, SLOT(setFocus()));
+    }
+    {
+        QAction* action = new QAction("Find", this);
+        action->setShortcut(QKeySequence::Find);
+        addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(find()));
+        connect(searchField, SIGNAL(returnPressed()), this, SLOT(findNext()));
+    }
+    {
+        QAction* action = new QAction("Find next", this);
+        action->setShortcut(QKeySequence::FindNext);
+        addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(findNext()));
+    }
+    {
+        QAction* action = new QAction("Find previous", this);
+        action->setShortcut(QKeySequence::FindPrevious);
+        addAction(action);
+        connect(action, SIGNAL(triggered()), this, SLOT(findPrevious()));
+    }
 
     connect(editor, SIGNAL(textChanged()), this, SLOT(saveFile()));
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(readFileLater(QString)));
@@ -40,6 +70,28 @@ Window::~Window()
 QString Window::currentFileName() const
 {
     return filename;
+}
+
+void Window::find()
+{
+    QTextCursor cursor = editor->textCursor();
+    cursor.movePosition(QTextCursor::StartOfWord);
+    cursor.movePosition(QTextCursor::EndOfWord, QTextCursor::KeepAnchor);
+    searchField->setText(cursor.selectedText());
+    searchField->selectAll();
+    searchField->setFocus();
+}
+
+void Window::findNext()
+{
+    editor->find(searchField->text());
+    editor->setFocus();
+}
+
+void Window::findPrevious()
+{
+    editor->find(searchField->text(), QTextDocument::FindBackward);
+    editor->setFocus();
 }
 
 void Window::visitFile(const QString &name)
