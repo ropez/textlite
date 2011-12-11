@@ -75,8 +75,7 @@ QString Window::currentFileName() const
 void Window::find()
 {
     QTextCursor cursor = editor->textCursor();
-    cursor.movePosition(QTextCursor::StartOfWord);
-    cursor.movePosition(QTextCursor::EndOfWord, QTextCursor::KeepAnchor);
+    cursor.select(QTextCursor::WordUnderCursor);
     searchField->setText(cursor.selectedText());
     searchField->selectAll();
     searchField->setFocus();
