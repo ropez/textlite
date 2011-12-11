@@ -75,7 +75,13 @@ QString Window::currentFileName() const
 void Window::find()
 {
     QTextCursor cursor = editor->textCursor();
-    cursor.select(QTextCursor::WordUnderCursor);
+    if (!cursor.hasSelection()) {
+        cursor.select(QTextCursor::WordUnderCursor);
+    } else if (cursor.document()->findBlock(cursor.selectionStart()) !=
+               cursor.document()->findBlock(cursor.selectionEnd())) {
+        // TODO: Find in selection
+        cursor.clearSelection();
+    }
     searchField->setText(cursor.selectedText());
     searchField->selectAll();
     searchField->setFocus();
