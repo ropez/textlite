@@ -89,14 +89,21 @@ void Window::find()
 
 void Window::findNext()
 {
-    editor->find(searchField->text());
     editor->setFocus();
+    QTextCursor found = editor->document()->find(searchField->text(), editor->textCursor());
+    if (!found.isNull()) {
+        editor->setTextCursor(found);
+    }
 }
 
 void Window::findPrevious()
 {
-    editor->find(searchField->text(), QTextDocument::FindBackward);
     editor->setFocus();
+    QTextCursor found = editor->document()->find(searchField->text(), editor->textCursor(),
+                                                 QTextDocument::FindBackward);
+    if (!found.isNull()) {
+        editor->setTextCursor(found);
+    }
 }
 
 void Window::visitFile(const QString &name)
