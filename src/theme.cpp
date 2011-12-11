@@ -23,9 +23,15 @@ Theme::~Theme()
 {
 }
 
+void Theme::clearThemeData()
+{
+    Theme that;
+    d = that.d;
+}
+
 void Theme::setThemeData(const QVariantMap& themeData)
 {
-    d->data.clear();
+    clearThemeData();
     QVariantList settingsListData = themeData.value("settings").toList();
     QListIterator<QVariant> iter(settingsListData);
     while (iter.hasNext()) {
@@ -105,4 +111,14 @@ QColor ThemePrivate::parseThemeColor(const QString& hex)
         }
     }
     return QColor(hex);
+}
+
+bool operator==(const Theme& theme1, const Theme& theme2)
+{
+    return theme1.d == theme2.d;
+}
+
+bool operator!=(const Theme& theme1, const Theme& theme2)
+{
+    return theme1.d != theme2.d;
 }

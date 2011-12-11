@@ -88,8 +88,10 @@ Highlighter::~Highlighter()
 
 void Highlighter::setTheme(const Theme& theme)
 {
-    d->theme = theme;
-    rehighlight();
+    if (d->theme != theme) {
+        d->theme = theme;
+        rehighlight();
+    }
 }
 
 void Highlighter::readSyntaxData(const QString& scopeName)

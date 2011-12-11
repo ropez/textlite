@@ -15,6 +15,7 @@ public:
     Theme();
     ~Theme();
 
+    void clearThemeData();
     void setThemeData(const QVariantMap& themeData);
 
     QTextCharFormat format(const QString& name) const;
@@ -26,6 +27,9 @@ public:
       "a", "b", "c" => "a b c" -> "b c" -> "a c" -> "c" -> "a b" -> "b" -> "a" -> ""
       */
     QTextCharFormat findFormat(const ScopeSelector& scope) const;
+
+    friend bool operator==(const Theme& theme1, const Theme& theme2);
+    friend bool operator!=(const Theme& theme1, const Theme& theme2);
 
 private:
     QSharedPointer<ThemePrivate> d;
