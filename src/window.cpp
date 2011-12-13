@@ -118,10 +118,15 @@ void Window::findPrevious()
 
 void Window::visitFile(const QString &name)
 {
+    // Store cursor
+    if (!this->filename.isEmpty()){
+        cursors[this->filename] = editor->textCursor();
+    }
     this->filename.clear();
 
     if (documents.contains(name)) {
         editor->setDocument(documents.value(name));
+        editor->setTextCursor(cursors.value(name));
     } else {
         editor->setDocument(new QTextDocument(this));
         documents.insert(name, editor->document());

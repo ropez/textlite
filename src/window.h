@@ -6,6 +6,7 @@
 #include <QtCore/QQueue>
 
 class QTextDocument;
+class QTextCursor;
 class QFileSystemWatcher;
 class QLineEdit;
 class QTimer;
@@ -48,6 +49,7 @@ private:
 
     QString filename;
     QMap<QString, QTextDocument*> documents;
+    QMap<QString, QTextCursor> cursors;
 
     QFileSystemWatcher* watcher;
     QTimer* reloadTimer;
