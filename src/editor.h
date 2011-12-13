@@ -30,11 +30,15 @@ public:
     bool isLeadingWhitespace(const QTextCursor& cursor) const;
 
     void doIndent(QTextCursor c);
+    void doIncreaseIndent(QTextCursor cursor);
+    void doDecreaseIndent(QTextCursor cursor);
     void doKillLine(QTextCursor cursor);
 
 
 public slots:
     void indentLine();
+    void increaseIndent();
+    void decreaseIndent();
     void killLine();
 
 protected:

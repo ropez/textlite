@@ -39,6 +39,18 @@ Editor::Editor(QWidget *parent) :
     }
     {
         QAction* action = new QAction(this);
+        action->setShortcut(QKeySequence(tr("Ctrl+]")));
+        connect(action, SIGNAL(triggered()), this, SLOT(increaseIndent()));
+        addAction(action);
+    }
+    {
+        QAction* action = new QAction(this);
+        action->setShortcut(QKeySequence(tr("Ctrl+[")));
+        connect(action, SIGNAL(triggered()), this, SLOT(decreaseIndent()));
+        addAction(action);
+    }
+    {
+        QAction* action = new QAction(this);
         action->setShortcut(QKeySequence(tr("Ctrl+K")));
         connect(action, SIGNAL(triggered()), this, SLOT(killLine()));
         addAction(action);
@@ -101,6 +113,39 @@ void Editor::doIndent(QTextCursor cursor)
     cursor.endEditBlock();
 }
 
+void Editor::doIncreaseIndent(QTextCursor cursor)
+{
+    QTextCursor end(document());
+    end.setPosition(cursor.selectionEnd());
+    cursor.setPosition(cursor.selectionStart());
+    cursor.movePosition(QTextCursor::StartOfBlock);
+    cursor.beginEditBlock();
+    do {
+        cursor.insertText(QString(" ").repeated(4));
+        cursor.movePosition(QTextCursor::NextBlock);
+    } while (cursor < end);
+    cursor.endEditBlock();
+}
+
+void Editor::doDecreaseIndent(QTextCursor cursor)
+{
+    QTextCursor end(document());
+    end.setPosition(cursor.selectionEnd());
+    cursor.setPosition(cursor.selectionStart());
+    cursor.movePosition(QTextCursor::StartOfBlock);
+    cursor.beginEditBlock();
+    do {
+        int i = 4;
+        while (i--) {
+            if (!document()->characterAt(cursor.position()).isSpace())
+                break;
+            cursor.deleteChar();
+        }
+        cursor.movePosition(QTextCursor::NextBlock);
+    } while (cursor < end);
+    cursor.endEditBlock();
+}
+
 void Editor::doKillLine(QTextCursor cursor)
 {
     // Make selection contain whole blocks
@@ -120,6 +165,16 @@ void Editor::doKillLine(QTextCursor cursor)
 void Editor::indentLine()
 {
     doIndent(textCursor());
+}
+
+void Editor::increaseIndent()
+{
+    doIncreaseIndent(textCursor());
+}
+
+void Editor::decreaseIndent()
+{
+    doDecreaseIndent(textCursor());
 }
 
 void Editor::killLine()
