@@ -200,11 +200,28 @@ void Editor::killLine()
     doKillLine(textCursor());
 }
 
+void Editor::smartNewline()
+{
+    QTextCursor cursor = textCursor();
+    QRegExp exp("^(\\W*)((?=\\w)|$)");
+    exp.indexIn(cursor.block().text());
+    QString prefix = exp.cap().left(cursor.positionInBlock());
+
+    cursor.beginEditBlock();
+    cursor.insertBlock();
+    cursor.insertText(prefix);
+    cursor.endEditBlock();
+}
+
 void Editor::keyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key_Return) {
-        QTextEdit::keyPressEvent(e);
-        doIndent(textCursor());
+        if (e->modifiers() & Qt::ShiftModifier) {
+            smartNewline();
+        } else {
+            QTextEdit::keyPressEvent(e);
+            doIndent(textCursor());
+        }
     } else if (e->key() == Qt::Key_Tab) {
         QTextCursor cursor = textCursor();
         do {

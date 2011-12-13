@@ -47,6 +47,8 @@ public slots:
     void decreaseIndent();
     void killLine();
 
+    void smartNewline();
+
 protected:
     void keyPressEvent(QKeyEvent* e);
     bool event(QEvent *e);
