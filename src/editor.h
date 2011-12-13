@@ -34,6 +34,12 @@ public:
     void doDecreaseIndent(QTextCursor cursor);
     void doKillLine(QTextCursor cursor);
 
+    /**
+     * This function behaves similar to QTextEdit::find() except that it has the ability to
+     * continue from the beginning when the end of the document is reached without finding the
+     * text.
+     */
+    bool findMore(const QString& exp, QTextDocument::FindFlags options = 0);
 
 public slots:
     void indentLine();

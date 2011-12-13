@@ -162,6 +162,24 @@ void Editor::doKillLine(QTextCursor cursor)
     cursor.removeSelectedText();
 }
 
+bool Editor::findMore(const QString& exp, QTextDocument::FindFlags options)
+{
+    QTextCursor found = document()->find(exp, textCursor(), options);
+    if (found.isNull()) {
+        QTextCursor cursor(document());
+        if (options & QTextDocument::FindBackward)
+            cursor.movePosition(QTextCursor::End);
+        found = document()->find(exp, cursor, options);
+        // TODO: Visual wrap-around feedback
+    }
+    if (found.isNull()) {
+        return false;
+    } else {
+        setTextCursor(found);
+        return true;
+    }
+}
+
 void Editor::indentLine()
 {
     doIndent(textCursor());
