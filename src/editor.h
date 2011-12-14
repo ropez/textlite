@@ -47,7 +47,10 @@ public slots:
     void decreaseIndent();
     void killLine();
 
+    void newline();
     void smartNewline();
+    void insertLineBefore();
+    void insertLineAfter();
 
 protected:
     void keyPressEvent(QKeyEvent* e);

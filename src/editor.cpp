@@ -200,6 +200,15 @@ void Editor::killLine()
     doKillLine(textCursor());
 }
 
+void Editor::newline()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    cursor.insertBlock();
+    doIndent(cursor);
+    cursor.endEditBlock();
+}
+
 void Editor::smartNewline()
 {
     QTextCursor cursor = textCursor();
@@ -213,15 +222,44 @@ void Editor::smartNewline()
     cursor.endEditBlock();
 }
 
+void Editor::insertLineBefore()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    cursor.movePosition(QTextCursor::StartOfBlock);
+    cursor.insertBlock();
+    cursor.movePosition(QTextCursor::PreviousBlock);
+    doIndent(cursor);
+    cursor.endEditBlock();
+    setTextCursor(cursor);
+}
+
+void Editor::insertLineAfter()
+{
+    QTextCursor cursor = textCursor();
+    cursor.beginEditBlock();
+    cursor.movePosition(QTextCursor::EndOfBlock);
+    cursor.insertBlock();
+    doIndent(cursor);
+    cursor.endEditBlock();
+    setTextCursor(cursor);
+}
+
 void Editor::keyPressEvent(QKeyEvent* e)
 {
     if (e->key() == Qt::Key_Return) {
-        if (e->modifiers() & Qt::ShiftModifier) {
+        if (e->modifiers() & Qt::ControlModifier) {
+            if (e->modifiers() & Qt::ShiftModifier) {
+                insertLineBefore();
+            } else {
+                insertLineAfter();
+            }
+        } else if (e->modifiers() & Qt::ShiftModifier) {
             smartNewline();
         } else {
-            QTextEdit::keyPressEvent(e);
-            doIndent(textCursor());
+            newline();
         }
+        e->accept();
     } else if (e->key() == Qt::Key_Tab) {
         QTextCursor cursor = textCursor();
         do {
