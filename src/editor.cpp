@@ -55,6 +55,24 @@ Editor::Editor(QWidget *parent) :
         connect(action, SIGNAL(triggered()), this, SLOT(killLine()));
         addAction(action);
     }
+    {
+        QAction* action = new QAction(this);
+        action->setShortcut(QKeySequence(tr("Ctrl+Shift+Up")));
+        connect(action, SIGNAL(triggered()), this, SLOT(moveRegionUp()));
+        addAction(action);
+    }
+    {
+        QAction* action = new QAction(this);
+        action->setShortcut(QKeySequence(tr("Ctrl+Shift+Down")));
+        connect(action, SIGNAL(triggered()), this, SLOT(moveRegionDown()));
+        addAction(action);
+    }
+    {
+        QAction* action = new QAction(this);
+        action->setShortcut(QKeySequence(tr("Ctrl+Shift+B")));
+        connect(action, SIGNAL(triggered()), this, SLOT(selectBlocks()));
+        addAction(action);
+    }
 }
 
 QString Editor::scopeForCursor(const QTextCursor& cursor) const
@@ -92,6 +110,19 @@ bool Editor::isLeadingWhitespace(const QTextCursor& cursor) const
             return true;
     }
     return false;
+}
+
+void Editor::doSelectBlocks(QTextCursor& cursor)
+{
+    int end = cursor.selectionEnd();
+    cursor.setPosition(cursor.selectionStart());
+    cursor.movePosition(QTextCursor::StartOfBlock);
+    cursor.setPosition(end, QTextCursor::KeepAnchor);
+    if (cursor.hasSelection() && cursor.atBlockStart()) {
+        cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);
+    } else {
+        cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+    }
 }
 
 void Editor::doIndent(QTextCursor cursor)
@@ -148,18 +179,20 @@ void Editor::doDecreaseIndent(QTextCursor cursor)
 
 void Editor::doKillLine(QTextCursor cursor)
 {
-    // Make selection contain whole blocks
-    {
-        int end = cursor.selectionEnd();
-        cursor.setPosition(cursor.selectionStart());
-        cursor.movePosition(QTextCursor::StartOfBlock);
-        cursor.setPosition(end, QTextCursor::KeepAnchor);
-        if (! (cursor.hasSelection() && cursor.atBlockStart())) {
-            cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
-        }
-    }
-
+    doSelectBlocks(cursor);
+    cursor.beginEditBlock();
     cursor.removeSelectedText();
+    cursor.deleteChar();
+    cursor.endEditBlock();
+}
+
+void Editor::doMoveText(QTextCursor selection, QTextCursor newPos)
+{
+    selection.beginEditBlock();
+    QString text = selection.selectedText();
+    selection.removeSelectedText();
+    newPos.insertText(text);
+    selection.endEditBlock();
 }
 
 bool Editor::findMore(const QString& exp, QTextDocument::FindFlags options)
@@ -178,6 +211,14 @@ bool Editor::findMore(const QString& exp, QTextDocument::FindFlags options)
         setTextCursor(found);
         return true;
     }
+}
+
+
+void Editor::selectBlocks()
+{
+    QTextCursor cursor = textCursor();
+    doSelectBlocks(cursor);
+    setTextCursor(cursor);
 }
 
 void Editor::indentLine()
@@ -243,6 +284,38 @@ void Editor::insertLineAfter()
     doIndent(cursor);
     cursor.endEditBlock();
     setTextCursor(cursor);
+}
+
+void Editor::moveRegionUp()
+{
+    QTextCursor cursor = textCursor();
+    doSelectBlocks(cursor);
+    setTextCursor(cursor);
+    QTextCursor lineBefore(document());
+    lineBefore.setPosition(cursor.selectionStart());
+    lineBefore.movePosition(QTextCursor::StartOfBlock);
+    if (!lineBefore.movePosition(QTextCursor::PreviousBlock, QTextCursor::KeepAnchor))
+        return; // Region already at beginning of file
+    QTextCursor newPos(document());
+    newPos.setPosition(cursor.selectionEnd());
+    newPos.movePosition(QTextCursor::NextBlock);
+    doMoveText(lineBefore, newPos);
+}
+
+void Editor::moveRegionDown()
+{
+    QTextCursor cursor = textCursor();
+    doSelectBlocks(cursor);
+    setTextCursor(cursor);
+    QTextCursor lineAfter(document());
+    lineAfter.setPosition(cursor.selectionEnd());
+    lineAfter.movePosition(QTextCursor::NextBlock);
+    if (!lineAfter.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor))
+        return; // Region already at end of file
+    QTextCursor newPos(document());
+    newPos.setPosition(cursor.selectionStart());
+    newPos.movePosition(QTextCursor::StartOfBlock);
+    doMoveText(lineAfter, newPos);
 }
 
 void Editor::keyPressEvent(QKeyEvent* e)

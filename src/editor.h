@@ -29,10 +29,17 @@ public:
     bool currentIndent(const QTextCursor& cursor, int* indent) const;
     bool isLeadingWhitespace(const QTextCursor& cursor) const;
 
+    /**
+     * Make selection contain whole blocks
+     */
+    void doSelectBlocks(QTextCursor& cursor);
+
     void doIndent(QTextCursor c);
     void doIncreaseIndent(QTextCursor cursor);
     void doDecreaseIndent(QTextCursor cursor);
     void doKillLine(QTextCursor cursor);
+
+    void doMoveText(QTextCursor selection, QTextCursor newPos);
 
     /**
      * This function behaves similar to QTextEdit::find() except that it has the ability to
@@ -42,6 +49,8 @@ public:
     bool findMore(const QString& exp, QTextDocument::FindFlags options = 0);
 
 public slots:
+    void selectBlocks();
+
     void indentLine();
     void increaseIndent();
     void decreaseIndent();
@@ -51,6 +60,9 @@ public slots:
     void smartNewline();
     void insertLineBefore();
     void insertLineAfter();
+
+    void moveRegionUp();
+    void moveRegionDown();
 
 protected:
     void keyPressEvent(QKeyEvent* e);
