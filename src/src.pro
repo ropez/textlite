@@ -36,8 +36,7 @@ HEADERS  += mainwindow.h \
     grammar.h \
     ruledata.h
 
-FORMS += \
-    navigator.ui
+FORMS +=
 
 unix|win32: LIBS += -lonig
 

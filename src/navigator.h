@@ -3,9 +3,8 @@
 
 #include <QWidget>
 
-namespace Ui {
-    class Navigator;
-}
+class QLineEdit;
+class QComboBox;
 
 class Navigator : public QWidget
 {
@@ -30,7 +29,8 @@ private slots:
     void activate();
 
 private:
-    Ui::Navigator *ui;
+    QLineEdit *pathEdit;
+    QComboBox *themeSelector;
 };
 
 #endif // NAVIGATOR_H

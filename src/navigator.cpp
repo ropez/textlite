@@ -1,12 +1,14 @@
 #include "navigator.h"
-#include "ui_navigator.h"
 
 #include <qgitrepository.h>
 #include <qgitindexmodel.h>
 #include <qgitexception.h>
 
 #include <QCompleter>
+#include <QComboBox>
 #include <QStringListModel>
+#include <QLayout>
+#include <QLabel>
 #include <QLineEdit>
 #include <QDir>
 #include <QMessageBox>
@@ -16,12 +18,18 @@
 using namespace LibQGit2;
 
 Navigator::Navigator(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::Navigator)
+    QWidget(parent)
 {
-    ui->setupUi(this);
+    pathEdit = new QLineEdit(this);
+    themeSelector = new QComboBox(this);
 
-    connect(ui->comboBox, SIGNAL(returnPressed()), this, SLOT(activate()));
+    QHBoxLayout* hl = new QHBoxLayout(this);
+    hl->addWidget(new QLabel(tr("File"), this));
+    hl->addWidget(pathEdit);
+    hl->addWidget(themeSelector);
+    hl->setContentsMargins(-1, 0, -1, 0);
+
+    connect(pathEdit, SIGNAL(returnPressed()), this, SLOT(activate()));
 
     try {
         // Open Git repository
@@ -47,45 +55,44 @@ Navigator::Navigator(QWidget *parent) :
         // Create completer
         QCompleter* completer = new QCompleter(this);
         completer->setModel(model);
-        ui->comboBox->setCompleter(completer);
+        pathEdit->setCompleter(completer);
     } catch (const QGitException& e) {
         QMessageBox::critical(this, tr("Git operation failed"), e.message());
     }
 
-    connect(ui->themeSelector, SIGNAL(activated(QString)), this, SIGNAL(themeChange(QString)));
+    connect(themeSelector, SIGNAL(activated(QString)), this, SIGNAL(themeChange(QString)));
 }
 
 Navigator::~Navigator()
 {
-    delete ui;
 }
 
 QString Navigator::fileName() const
 {
-    return ui->comboBox->text();
+    return pathEdit->text();
 }
 
 void Navigator::setFileFocus()
 {
-    ui->comboBox->setFocus();
-    ui->comboBox->selectAll();
+    pathEdit->setFocus();
+    pathEdit->selectAll();
 }
 
 void Navigator::setFileName(const QString& fileName)
 {
-    ui->comboBox->setText(fileName);
+    pathEdit->setText(fileName);
 }
 
 void Navigator::setThemeNames(const QStringList& themeList)
 {
-    ui->themeSelector->clear();
-    ui->themeSelector->addItems(themeList);
+    themeSelector->clear();
+    themeSelector->addItems(themeList);
 
     // FIXME Temporary until theme is stored between sessions
-    emit themeChange(ui->themeSelector->currentText());
+    emit themeChange(themeSelector->currentText());
 }
 
 void Navigator::activate()
 {
-    emit activated(ui->comboBox->text());
+    emit activated(pathEdit->text());
 }
