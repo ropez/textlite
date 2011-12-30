@@ -41,7 +41,10 @@ public:
     void doDecreaseIndent(QTextCursor cursor);
     void doKillLine(QTextCursor cursor);
 
-    void doMoveText(QTextCursor selection, QTextCursor newPos);
+    /**
+     * Returns a text cursor with a selection continaing the inserted text
+     */
+    QTextCursor doMoveText(QTextCursor selection, QTextCursor newPos);
 
     /**
      * This function behaves similar to QTextEdit::find() except that it has the ability to

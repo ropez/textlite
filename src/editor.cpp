@@ -119,10 +119,8 @@ void Editor::doSelectBlocks(QTextCursor& cursor)
     cursor.setPosition(cursor.selectionStart());
     cursor.movePosition(QTextCursor::StartOfBlock);
     cursor.setPosition(end, QTextCursor::KeepAnchor);
-    if (cursor.hasSelection() && cursor.atBlockStart()) {
-        cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);
-    } else {
-        cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+    if (! (cursor.hasSelection() && cursor.atBlockStart())) {
+        cursor.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor);
     }
 }
 
@@ -185,17 +183,20 @@ void Editor::doKillLine(QTextCursor cursor)
     doSelectBlocks(cursor);
     cursor.beginEditBlock();
     cursor.removeSelectedText();
-    cursor.deleteChar();
     cursor.endEditBlock();
 }
 
-void Editor::doMoveText(QTextCursor selection, QTextCursor newPos)
+QTextCursor Editor::doMoveText(QTextCursor selection, QTextCursor newPos)
 {
     selection.beginEditBlock();
     QString text = selection.selectedText();
     selection.removeSelectedText();
+    int pos = newPos.position();
     newPos.insertText(text);
     selection.endEditBlock();
+    selection.setPosition(pos);
+    selection.setPosition(newPos.position(), QTextCursor::KeepAnchor);
+    return selection;
 }
 
 bool Editor::findMore(const QString& exp, QTextDocument::FindFlags options)
@@ -353,9 +354,8 @@ void Editor::insertLineAfter()
 
 void Editor::moveRegionUp()
 {
+    selectBlocks();
     QTextCursor cursor = textCursor();
-    doSelectBlocks(cursor);
-    setTextCursor(cursor);
     QTextCursor lineBefore(document());
     lineBefore.setPosition(cursor.selectionStart());
     lineBefore.movePosition(QTextCursor::StartOfBlock);
@@ -363,23 +363,24 @@ void Editor::moveRegionUp()
         return; // Region already at beginning of file
     QTextCursor newPos(document());
     newPos.setPosition(cursor.selectionEnd());
-    newPos.movePosition(QTextCursor::NextBlock);
-    doMoveText(lineBefore, newPos);
+    newPos = doMoveText(lineBefore, newPos);
+
+    // Qt automatically includes the inserted text in the current selection,
+    // when inserted at the end, so we need to fix it here
+    cursor.setPosition(newPos.selectionStart(), QTextCursor::KeepAnchor);
+    setTextCursor(cursor);
 }
 
 void Editor::moveRegionDown()
 {
+    selectBlocks();
     QTextCursor cursor = textCursor();
-    doSelectBlocks(cursor);
-    setTextCursor(cursor);
     QTextCursor lineAfter(document());
     lineAfter.setPosition(cursor.selectionEnd());
-    lineAfter.movePosition(QTextCursor::NextBlock);
     if (!lineAfter.movePosition(QTextCursor::NextBlock, QTextCursor::KeepAnchor))
         return; // Region already at end of file
     QTextCursor newPos(document());
     newPos.setPosition(cursor.selectionStart());
-    newPos.movePosition(QTextCursor::StartOfBlock);
     doMoveText(lineAfter, newPos);
 }
 
