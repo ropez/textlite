@@ -33,7 +33,7 @@ public slots:
 
 private slots:
     void saveFile();
-    void readFile(const QString& name, QTextDocument* document);
+    bool readFile(const QString& name, QTextDocument* document);
     void readFileLater(const QString& name);
     void readPendingFiles();
 

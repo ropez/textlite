@@ -115,7 +115,10 @@ void Window::visitFile(const QString &name)
         QTextDocument *doc = new QTextDocument(this);
         doc->setDefaultFont(editor->font());
 
-        readFile(name, doc);
+        if (!readFile(name, doc)) {
+            delete doc;
+            return;
+        }
 
         documents.insert(name, doc);
         cursors.insert(name, QTextCursor(doc));
@@ -153,7 +156,7 @@ void Window::saveFile()
     watcher->addPath(filename);
 }
 
-void Window::readFile(const QString& name, QTextDocument *document)
+bool Window::readFile(const QString& name, QTextDocument *document)
 {
     QFile file(name);
     if (file.open(QFile::ReadOnly)) {
@@ -163,8 +166,10 @@ void Window::readFile(const QString& name, QTextDocument *document)
         document->setPlainText(QString::fromUtf8(file.readAll()));
     } else {
         qWarning() << "File not found:" << name;
+        return false;
     }
     watcher->addPath(name);
+    return true;
 }
 
 void Window::readFileLater(const QString& name)
