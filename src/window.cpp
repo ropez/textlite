@@ -105,12 +105,15 @@ void Window::findPrevious()
 
 void Window::visitFile(const QString &name)
 {
-    // Store cursor
+    // Store cursor for current document
     if (!this->filename.isEmpty()){
         cursors[this->filename] = editor->textCursor();
     }
+
+    // Disable auto-save while loading
     this->filename.clear();
 
+    // Create document and load file
     if (!documents.contains(name)) {
         QTextDocument *doc = new QTextDocument(this);
         doc->setDefaultFont(editor->font());
@@ -127,11 +130,17 @@ void Window::visitFile(const QString &name)
         bundleManager->getHighlighterForExtension(info.completeSuffix(), doc);
     }
 
+    // Bring to front, restore cursor
     editor->setDocument(documents.value(name));
     editor->setTextCursor(cursors.value(name));
+
+    // Apparently, we need to repeat tab stop width when changing documents
     editor->setTabStopWidth(QFontMetrics(editor->font()).width(' ') * 4);
 
+    // Enable auto-save
     this->filename = name;
+
+    // Start editing
     editor->setReadOnly(false);
     editor->setFocus();
 }
