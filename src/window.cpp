@@ -29,6 +29,8 @@ Window::Window(BundleManager* bman, QWidget *parent) :
     editor->setWordWrapMode(QTextOption::NoWrap);
 
     watcher = new QFileSystemWatcher(this);
+    saveTimer = new QTimer(this);
+    saveTimer->setSingleShot(true);
     reloadTimer = new QTimer(this);
     reloadTimer->setSingleShot(true);
 
@@ -58,8 +60,9 @@ Window::Window(BundleManager* bman, QWidget *parent) :
         connect(action, SIGNAL(triggered()), this, SLOT(findPrevious()));
     }
 
-    connect(editor, SIGNAL(textChanged()), this, SLOT(saveFile()));
+    connect(editor, SIGNAL(textChanged()), this, SLOT(saveFileLater()));
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(readFileLater(QString)));
+    connect(saveTimer, SIGNAL(timeout()), this, SLOT(savePendingFiles()));
     connect(reloadTimer, SIGNAL(timeout()), this, SLOT(readPendingFiles()));
 
     QFont font;
@@ -69,6 +72,9 @@ Window::Window(BundleManager* bman, QWidget *parent) :
 
 Window::~Window()
 {
+    saveTimer->stop();
+    reloadTimer->stop();
+    savePendingFiles();
 }
 
 QString Window::currentFileName() const
@@ -145,24 +151,43 @@ void Window::visitFile(const QString &name)
     editor->setFocus();
 }
 
-void Window::saveFile()
+void Window::saveFile(const QString &name, QTextDocument* document)
 {
-    if (filename.isNull())
-        return;
+    watcher->removePath(name);
 
-    watcher->removePath(filename);
+    qDebug() << "save" << name;
 
-    QFile file(filename);
+    QFile file(name);
 
     if (!file.open(QFile::WriteOnly)) {
         qWarning("Permission denied");
         return;
     }
 
-    file.write(editor->document()->toPlainText().toUtf8());
+    file.write(document->toPlainText().toUtf8());
     file.close();
 
-    watcher->addPath(filename);
+    watcher->addPath(name);
+}
+
+void Window::saveFileLater()
+{
+    if (filename.isNull())
+        return;
+
+    if (!saveNames.contains(filename))
+        saveNames.enqueue(filename);
+
+    saveTimer->start(1000);
+}
+
+void Window::savePendingFiles()
+{
+    while (!saveNames.isEmpty()) {
+        QString name = saveNames.dequeue();
+        Q_ASSERT(documents.contains(name));
+        saveFile(name, documents.value(name));
+    }
 }
 
 bool Window::readFile(const QString& name, QTextDocument *document)

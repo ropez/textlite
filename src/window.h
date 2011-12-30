@@ -32,7 +32,9 @@ public slots:
     void visitFile(const QString& name);
 
 private slots:
-    void saveFile();
+    void saveFile(const QString& name, QTextDocument *document);
+    void saveFileLater();
+    void savePendingFiles();
     bool readFile(const QString& name, QTextDocument* document);
     void readFileLater(const QString& name);
     void readPendingFiles();
@@ -52,7 +54,9 @@ private:
     QMap<QString, QTextCursor> cursors;
 
     QFileSystemWatcher* watcher;
+    QTimer* saveTimer;
     QTimer* reloadTimer;
+    QQueue<QString> saveNames;
     QQueue<QString> reloadNames;
 };
 
