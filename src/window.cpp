@@ -61,6 +61,10 @@ Window::Window(BundleManager* bman, QWidget *parent) :
     connect(editor, SIGNAL(textChanged()), this, SLOT(saveFile()));
     connect(watcher, SIGNAL(fileChanged(QString)), this, SLOT(readFileLater(QString)));
     connect(reloadTimer, SIGNAL(timeout()), this, SLOT(readPendingFiles()));
+
+    QFont font;
+    font.setFamily("DejaVu Sans Mono");
+    editor->setFont(font);
 }
 
 Window::~Window()
@@ -107,25 +111,22 @@ void Window::visitFile(const QString &name)
     }
     this->filename.clear();
 
-    if (documents.contains(name)) {
-        editor->setDocument(documents.value(name));
-        editor->setTextCursor(cursors.value(name));
-    } else {
-        editor->setDocument(new QTextDocument(this));
-        documents.insert(name, editor->document());
+    if (!documents.contains(name)) {
+        QTextDocument *doc = new QTextDocument(this);
+        doc->setDefaultFont(editor->font());
 
-        QFont font;
-        font.setFamily("DejaVu Sans Mono");
-        editor->document()->setDefaultFont(font);
-
-        editor->setTabStopWidth(QFontMetrics(font).width(' ') * 4);
-
+        documents.insert(name, doc);
         readFile(name);
-        editor->setTextCursor(QTextCursor(editor->document()));
+
+        cursors.insert(name, QTextCursor(doc));
 
         QFileInfo info(name);
-        bundleManager->getHighlighterForExtension(info.completeSuffix(), editor->document());
+        bundleManager->getHighlighterForExtension(info.completeSuffix(), doc);
     }
+
+    editor->setDocument(documents.value(name));
+    editor->setTextCursor(cursors.value(name));
+    editor->setTabStopWidth(QFontMetrics(editor->font()).width(' ') * 4);
 
     this->filename = name;
     editor->setReadOnly(false);
