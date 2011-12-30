@@ -169,6 +169,8 @@ void Editor::doDecreaseIndent(QTextCursor cursor)
     do {
         int i = 4;
         while (i--) {
+            if (cursor.atBlockEnd())
+                break;
             if (!document()->characterAt(cursor.position()).isSpace())
                 break;
             cursor.deleteChar();
