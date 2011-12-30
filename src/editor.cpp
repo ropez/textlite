@@ -73,6 +73,7 @@ Editor::Editor(QWidget *parent) :
         connect(action, SIGNAL(triggered()), this, SLOT(selectBlocks()));
         addAction(action);
     }
+    connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightMatching()));
 }
 
 QString Editor::scopeForCursor(const QTextCursor& cursor) const
@@ -213,6 +214,68 @@ bool Editor::findMore(const QString& exp, QTextDocument::FindFlags options)
     }
 }
 
+Editor::CursorPair Editor::findMatchingBackwards(QTextCursor cursor)
+{
+    cursor.clearSelection();
+    cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);
+    QChar right = document()->characterAt(cursor.position());
+    QChar left;
+    if (right == ']') {
+        left = '[';
+    } else if (right == '}') {
+        left = '{';
+    } else if (right == ')') {
+        left = '(';
+    } else {
+        return CursorPair();
+    }
+    int nested = 1;
+    QTextCursor match = cursor;
+    while (match.movePosition(QTextCursor::Left)) {
+        QChar cur = document()->characterAt(match.position());
+        if (cur == right) {
+            ++nested;
+        } else if (cur == left) {
+            if (--nested == 0) {
+                match.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor);
+                return qMakePair(cursor, match);
+            }
+        }
+    }
+    return CursorPair();
+}
+
+Editor::CursorPair Editor::findMatchingForward(QTextCursor cursor)
+{
+    cursor.clearSelection();
+    cursor.movePosition(QTextCursor::Right);
+    cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor);
+    QChar left = document()->characterAt(cursor.position());
+    QChar right;
+    if (left == '[') {
+        right = ']';
+    } else if (left == '{') {
+        right = '}';
+    } else if (left == '(') {
+        right = ')';
+    } else {
+        return CursorPair();
+    }
+    int nested = 1;
+    QTextCursor match = cursor;
+    while (match.movePosition(QTextCursor::Right)) {
+        QChar cur = document()->characterAt(match.position());
+        if (cur == left) {
+            ++nested;
+        } else if (cur == right) {
+            if (--nested == 0) {
+                match.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor);
+                return qMakePair(cursor, match);
+            }
+        }
+    }
+    return CursorPair();
+}
 
 void Editor::selectBlocks()
 {
@@ -316,6 +379,31 @@ void Editor::moveRegionDown()
     newPos.setPosition(cursor.selectionStart());
     newPos.movePosition(QTextCursor::StartOfBlock);
     doMoveText(lineAfter, newPos);
+}
+
+void Editor::highlightMatching()
+{
+    QList<ExtraSelection> selections;
+    QList<CursorPair> matching;
+
+    matching << findMatchingBackwards(textCursor());
+    matching << findMatchingForward(textCursor());
+
+    foreach (CursorPair match, matching) {
+        if (!match.second.isNull()) {
+            ExtraSelection sel;
+            sel.cursor = match.first;
+            sel.format = match.first.charFormat();
+            sel.format.setForeground(Qt::red); // FIXME theme colors?
+            selections << sel;
+            sel.cursor = match.second;
+            sel.format = match.second.charFormat();
+            sel.format.setBackground(Qt::green);
+            sel.format.setForeground(Qt::red);
+            selections << sel;
+        }
+    }
+    setExtraSelections(selections);
 }
 
 void Editor::keyPressEvent(QKeyEvent* e)

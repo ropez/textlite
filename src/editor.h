@@ -22,6 +22,8 @@ class Editor : public QTextEdit
 {
     Q_OBJECT
 public:
+    typedef QPair<QTextCursor, QTextCursor> CursorPair;
+
     explicit Editor(QWidget *parent = 0);
 
     QString scopeForCursor(const QTextCursor& cursor) const;
@@ -34,7 +36,7 @@ public:
      */
     void doSelectBlocks(QTextCursor& cursor);
 
-    void doIndent(QTextCursor c);
+    void doIndent(QTextCursor cursor);
     void doIncreaseIndent(QTextCursor cursor);
     void doDecreaseIndent(QTextCursor cursor);
     void doKillLine(QTextCursor cursor);
@@ -47,6 +49,9 @@ public:
      * text.
      */
     bool findMore(const QString& exp, QTextDocument::FindFlags options = 0);
+
+    CursorPair findMatchingBackwards(QTextCursor cursor);
+    CursorPair findMatchingForward(QTextCursor cursor);
 
 public slots:
     void selectBlocks();
@@ -63,6 +68,8 @@ public slots:
 
     void moveRegionUp();
     void moveRegionDown();
+
+    void highlightMatching();
 
 protected:
     void keyPressEvent(QKeyEvent* e);
