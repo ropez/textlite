@@ -115,9 +115,9 @@ void Window::visitFile(const QString &name)
         QTextDocument *doc = new QTextDocument(this);
         doc->setDefaultFont(editor->font());
 
-        documents.insert(name, doc);
-        readFile(name);
+        readFile(name, doc);
 
+        documents.insert(name, doc);
         cursors.insert(name, QTextCursor(doc));
 
         QFileInfo info(name);
@@ -153,20 +153,16 @@ void Window::saveFile()
     watcher->addPath(filename);
 }
 
-void Window::readFile(const QString& name)
+void Window::readFile(const QString& name, QTextDocument *document)
 {
-    if (documents.contains(name)) {
-        QTextDocument* doc = documents.value(name);
-
-        QFile file(name);
-        if (file.open(QFile::ReadOnly)) {
-            for (int i = 0; i < doc->blockCount(); i++) {
-                EditorBlockData::forBlock(doc->findBlockByNumber(i))->scopes.clear();
-            }
-            doc->setPlainText(QString::fromUtf8(file.readAll()));
-        } else {
-            qWarning() << "File not found:" << name;
+    QFile file(name);
+    if (file.open(QFile::ReadOnly)) {
+        for (int i = 0; i < document->blockCount(); i++) {
+            EditorBlockData::forBlock(document->findBlockByNumber(i))->scopes.clear();
         }
+        document->setPlainText(QString::fromUtf8(file.readAll()));
+    } else {
+        qWarning() << "File not found:" << name;
     }
     watcher->addPath(name);
 }
@@ -184,7 +180,8 @@ void Window::readPendingFiles()
     this->filename.clear();
     while (!reloadNames.isEmpty()) {
         QString name = reloadNames.dequeue();
-        readFile(name);
+        Q_ASSERT(documents.contains(name));
+        readFile(name, documents.value(name));
     }
     this->filename = fn;
 }
