@@ -28,6 +28,12 @@ MainWindow::MainWindow(QWidget *parent)
     connect(navigator, SIGNAL(themeChange(QString)), bundleManager, SLOT(setThemeName(QString)));
     navigator->setThemeNames(bundleManager->themeNames());
 
+    QAction *refreshAction = new QAction(tr("Refresh"), this);
+    refreshAction->setIcon(QIcon::fromTheme("view-refresh"));
+    refreshAction->setShortcut(QKeySequence("F5"));
+    connect(refreshAction, SIGNAL(triggered()), navigator, SLOT(refresh()));
+    addAction(refreshAction);
+
     QAction* quitAction = new QAction(tr("Quit"), this);
     quitAction->setIcon(QIcon::fromTheme("application-exit"));
     quitAction->setShortcut(QKeySequence(QKeySequence::Quit));
@@ -52,6 +58,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, SIGNAL(historyForwardAvailable(bool)), forwardAction, SLOT(setEnabled(bool)));
 
     QMenu* menu = new QMenu(tr("Menu"));
+    menu->addAction(refreshAction);
+    menu->addSeparator();
     menu->addAction(quitAction);
 
     QToolButton* menuButton = new QToolButton(this);

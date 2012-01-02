@@ -2,6 +2,8 @@
 #define NAVIGATOR_H
 
 #include <QWidget>
+#include <qgitrepository.h>
+#include <qgitindexmodel.h>
 
 class QLineEdit;
 class QComboBox;
@@ -17,6 +19,8 @@ public:
     QString fileName() const;
 
 public slots:
+    void refresh();
+
     void setFileFocus();
     void setFileName(const QString& fileName);
     void setThemeNames(const QStringList& themeList);
@@ -31,6 +35,9 @@ private slots:
 private:
     QLineEdit *pathEdit;
     QComboBox *themeSelector;
+
+    LibQGit2::QGitRepository repo;
+    LibQGit2::QGitIndexModel *model;
 };
 
 #endif // NAVIGATOR_H

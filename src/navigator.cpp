@@ -1,7 +1,5 @@
 #include "navigator.h"
 
-#include <qgitrepository.h>
-#include <qgitindexmodel.h>
 #include <qgitexception.h>
 
 #include <QCompleter>
@@ -17,8 +15,9 @@
 
 using namespace LibQGit2;
 
-Navigator::Navigator(QWidget *parent) :
-    QWidget(parent)
+Navigator::Navigator(QWidget *parent)
+    : QWidget(parent)
+    , model(0)
 {
     pathEdit = new QLineEdit(this);
     themeSelector = new QComboBox(this);
@@ -30,10 +29,28 @@ Navigator::Navigator(QWidget *parent) :
     hl->setContentsMargins(-1, 0, -1, 0);
 
     connect(pathEdit, SIGNAL(returnPressed()), this, SLOT(activate()));
+    connect(themeSelector, SIGNAL(activated(QString)), this, SIGNAL(themeChange(QString)));
 
+    // Create completer
+    QCompleter* completer = new QCompleter(this);
+    pathEdit->setCompleter(completer);
+
+    refresh();
+}
+
+Navigator::~Navigator()
+{
+}
+
+QString Navigator::fileName() const
+{
+    return pathEdit->text();
+}
+
+void Navigator::refresh()
+{
     try {
         // Open Git repository
-        QGitRepository repo;
         repo.discoverAndOpen(QDir::currentPath());
 
         // Debugging
@@ -50,26 +67,14 @@ Navigator::Navigator(QWidget *parent) :
         QDir::setCurrent(repo.workDirPath());
 
         // Read Git index
-        QGitIndexModel* model = new QGitIndexModel(repo.index(), this);
+        delete model;
+        model = new QGitIndexModel(repo.index(), this);
 
-        // Create completer
-        QCompleter* completer = new QCompleter(this);
-        completer->setModel(model);
-        pathEdit->setCompleter(completer);
+        // Enable completer
+        pathEdit->completer()->setModel(model);
     } catch (const QGitException& e) {
         QMessageBox::critical(this, tr("Git operation failed"), e.message());
     }
-
-    connect(themeSelector, SIGNAL(activated(QString)), this, SIGNAL(themeChange(QString)));
-}
-
-Navigator::~Navigator()
-{
-}
-
-QString Navigator::fileName() const
-{
-    return pathEdit->text();
 }
 
 void Navigator::setFileFocus()
